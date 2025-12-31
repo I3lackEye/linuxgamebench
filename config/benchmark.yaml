@@ -1,0 +1,68 @@
+# Linux Game Benchmark - Configuration
+# =====================================
+
+# General settings
+general:
+  output_dir: "~/benchmark_results"
+  log_level: "INFO"
+
+# MangoHud settings
+mangohud:
+  log_interval: 0  # 0 = per-frame logging (most accurate)
+  log_duration: 0  # 0 = unlimited
+  extra_metrics:
+    - gpu_temp
+    - cpu_temp
+    - gpu_power
+    - vram
+    - ram
+
+# Gamescope settings (for resolution testing)
+gamescope:
+  enabled: false
+  upscaling: "fsr"  # fsr, nis, integer, none
+  upscale_sharpness: 5
+
+# Resolutions to test
+resolutions:
+  - name: "720p"
+    width: 1280
+    height: 720
+  - name: "1080p"
+    width: 1920
+    height: 1080
+  - name: "1440p"
+    width: 2560
+    height: 1440
+  - name: "4K"
+    width: 3840
+    height: 2160
+
+# Benchmark settings
+benchmark:
+  runs_per_test: 3
+  warmup_runs: 1
+  cooldown_seconds: 10
+  timed_duration: 60  # For games without builtin benchmark
+
+# FPS targets for evaluation
+fps_targets:
+  - 60
+  - 120
+  - 144
+  - 165
+  - 240
+
+# Games to exclude from scanning
+excluded_app_ids:
+  - 228980   # Steamworks Common Redistributables
+  - 1070560  # Steam Linux Runtime
+  - 1391110  # Steam Linux Runtime 2.0
+  - 1628350  # Steam Linux Runtime 3.0
+
+# Report settings
+reports:
+  formats:
+    - json
+    - html
+  include_charts: true

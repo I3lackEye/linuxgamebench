@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+test-results/
+.tox/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Benchmark Results (local, not in repo)
+benchmark_results/
+
+# Config with secrets
+.config/lgb/auth.json
+
+# Claude plans (local)
+.claude/
