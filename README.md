@@ -1,38 +1,38 @@
 # Linux Game Benchmark (lgb)
 
-Automatisiertes Benchmark-Tool für Steam-Spiele unter Linux.
-Misst FPS, Stutter, Frame Pacing und mehr mit MangoHud.
+Automated benchmark tool for Steam games on Linux.
+Measures FPS, stutter, frame pacing and more using MangoHud.
 
 ## Features
 
-- Automatische Steam-Spielerkennung
-- MangoHud-Integration für Frametimes
-- Detaillierte Metriken (AVG FPS, 1% Low, 0.1% Low, Stutter)
-- Multi-Auflösungs-Support (FHD, WQHD, UHD)
-- Schöne HTML-Reports mit interaktiven Charts
-- Multi-System-Vergleich (verschiedene GPUs/CPUs vergleichen)
-- Upload zur Community-Datenbank (coming soon)
+- Automatic Steam game detection
+- MangoHud integration for frametimes
+- Detailed metrics (AVG FPS, 1% Low, 0.1% Low, Stutter)
+- Multi-resolution support (FHD, WQHD, UHD)
+- Beautiful HTML reports with interactive charts
+- Multi-system comparison (compare different GPUs/CPUs)
+- Upload to community database
 
-## Voraussetzungen
+## Requirements
 
-- Linux (getestet auf Arch, Fedora, Ubuntu)
-- Steam installiert
-- MangoHud installiert
+- Linux (tested on Arch, Fedora, Ubuntu)
+- Steam installed
+- MangoHud installed
 - Python 3.10+
 
 Optional:
-- Gamescope (für Auflösungstests)
-- GameMode (für Performance-Optimierung)
+- Gamescope (for resolution tests)
+- GameMode (for performance optimization)
 
 ## Installation
 
 ### Arch Linux / CachyOS
 
 ```bash
-# MangoHud und optionale Tools installieren
+# Install MangoHud and optional tools
 sudo pacman -S mangohud lib32-mangohud gamemode lib32-gamemode gamescope
 
-# Tool installieren
+# Install the tool
 pip install linux-game-benchmark
 ```
 
@@ -43,7 +43,7 @@ sudo apt install mangohud
 pip install linux-game-benchmark
 ```
 
-### Aus Source installieren
+### Install from Source
 
 ```bash
 git clone https://github.com/taaderbe/linuxgamebench
@@ -51,68 +51,71 @@ cd linuxgamebench
 pip install -e .
 ```
 
-## Schnellstart
+## Quick Start
 
-### 1. System prüfen
+### 1. Check System
 
 ```bash
 lgb check
 ```
 
-### 2. Steam-Spiele auflisten
+### 2. List Steam Games
 
 ```bash
 lgb list
 ```
 
-### 3. Benchmark starten
+### 3. Start Benchmark
 
 ```bash
-# Interaktiver Modus (empfohlen)
+# Interactive mode (recommended)
 lgb record_manual
 ```
 
-**So funktioniert record_manual:**
-1. lgb konfiguriert MangoHud und wartet
-2. Starte dein Spiel mit `MANGOHUD=1 %command%` in den Steam-Startoptionen
-3. Drücke **Shift+F2** im Spiel um die Aufnahme zu starten (60 Sekunden)
-4. Zurück zum Terminal: Spielname und Auflösung eingeben
-5. Wiederhole für weitere Aufnahmen oder beenden
+**How record_manual works:**
+1. lgb configures MangoHud and waits
+2. Start your game with `MANGOHUD=1 %command%` in Steam launch options
+3. Press **Shift+F2** in-game to start recording (60 seconds)
+4. Return to terminal: enter game name and resolution
+5. Repeat for more recordings or exit
 
-### 4. Report anschauen
+### 4. View Report
 
 ```bash
 xdg-open ~/benchmark_results/index.html
 ```
 
-## Befehle
+## Commands
 
-| Befehl | Beschreibung |
-|--------|--------------|
-| `lgb check` | Systemanforderungen prüfen |
-| `lgb list` | Installierte Steam-Spiele anzeigen |
-| `lgb scan` | Steam-Bibliothek scannen |
-| `lgb info` | System-Informationen anzeigen |
-| `lgb record [game]` | Benchmark für ein Spiel starten |
-| `lgb record_manual` | Manueller Modus (Spiel selbst starten) |
-| `lgb analyze [log]` | MangoHud-Log analysieren |
-| `lgb report` | Reports neu generieren |
+| Command | Description |
+|---------|-------------|
+| `lgb check` | Check system requirements |
+| `lgb list` | Show installed Steam games |
+| `lgb scan` | Scan Steam library |
+| `lgb info` | Show system information |
+| `lgb record [game]` | Start benchmark for a game |
+| `lgb record_manual` | Manual mode (start game yourself) |
+| `lgb analyze [log]` | Analyze MangoHud log |
+| `lgb report` | Regenerate reports |
+| `lgb login` | Login with Steam account |
+| `lgb logout` | Logout from Steam |
+| `lgb upload` | Upload benchmarks to community database |
 
-## Metriken
+## Metrics
 
-| Metrik | Beschreibung |
-|--------|--------------|
-| **AVG FPS** | Durchschnittliche Bilder pro Sekunde |
-| **1% Low** | Niedrigste 1% der Frametimes (zeigt Mikroruckler) |
-| **0.1% Low** | Niedrigste 0.1% der Frametimes (extreme Ruckler) |
-| **Stutter** | Wie häufig treten Ruckler auf? (excellent/good/moderate/poor) |
-| **Consistency** | Wie gleichmäßig ist die Framerate? |
+| Metric | Description |
+|--------|-------------|
+| **AVG FPS** | Average frames per second |
+| **1% Low** | Lowest 1% of frametimes (shows micro stutters) |
+| **0.1% Low** | Lowest 0.1% of frametimes (extreme stutters) |
+| **Stutter** | How often do stutters occur? (excellent/good/moderate/poor) |
+| **Consistency** | How consistent is the framerate? |
 
-## Ergebnis-Struktur
+## Results Structure
 
 ```
 ~/benchmark_results/
-    index.html                    # Overview aller Spiele
+    index.html                    # Overview of all games
     Baldurs_Gate_3/
         CachyOS_abc123/           # System 1
             FHD/
@@ -122,42 +125,45 @@ xdg-open ~/benchmark_results/index.html
         EndeavourOS_def456/       # System 2
             UHD/
                 run_001.json
-        report.html               # Spiel-Report mit Tabs
+        report.html               # Game report with tabs
 ```
 
-**Wichtig:**
-- Daten werden **NIE gelöscht** - alle Benchmarks bleiben erhalten
-- Jedes System bekommt seinen eigenen Ordner
-- Reports zeigen alle Systeme mit Tabs zum Umschalten
+**Important:**
+- Data is **NEVER deleted** - all benchmarks are preserved
+- Each system gets its own folder
+- Reports show all systems with tabs to switch between them
 
 ## MangoHud Setup
 
-Füge in den Steam-Startoptionen hinzu:
+Add to Steam launch options:
 ```
 MANGOHUD=1 %command%
 ```
 
-Oder global aktivieren:
+Or enable globally:
 ```bash
 mkdir -p ~/.config/environment.d
 echo "MANGOHUD=1" >> ~/.config/environment.d/mangohud.conf
 ```
 
-## Ergebnisse hochladen (coming soon)
+## Upload Results
 
 ```bash
-# Steam Account verknüpfen
+# Link Steam account
 lgb login
 
-# Benchmark wird automatisch hochgeladen
+# Benchmark will prompt for upload
 lgb record "Cyberpunk 2077"
-# → "Hochladen? [J/n]"
+# → "Upload to community database? [Y/n]"
+
+# Or upload existing benchmarks
+lgb upload
 ```
 
-## Lizenz
+## License
 
 MIT License
 
-## Beitragen
+## Contributing
 
-Pull Requests sind willkommen! Bitte erstelle zuerst ein Issue um die Änderung zu besprechen.
+Pull requests are welcome! Please create an issue first to discuss the change.
