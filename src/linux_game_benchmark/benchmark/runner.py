@@ -52,7 +52,7 @@ class BenchmarkConfig:
     use_gamescope: bool = False
     gamescope_args: list[str] = field(default_factory=list)
     show_hud: bool = True
-    manual_logging: bool = False  # User presses Shift+F2 to start/stop recording
+    manual_logging: bool = True  # User presses Shift+F2 to start/stop recording
     extra_env: dict[str, str] = field(default_factory=dict)
     fps_targets: list[int] = field(default_factory=lambda: [60, 120, 144])
 

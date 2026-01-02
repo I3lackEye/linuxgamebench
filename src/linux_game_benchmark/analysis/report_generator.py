@@ -1000,7 +1000,7 @@ def generate_multi_resolution_report(
         </div>
 
         <footer>
-            Linux Game Benchmark &bull; MangoHud v0.8.2
+            Linux Game Benchmark &bull; <a href="https://github.com/taaderbe/linuxgamebench" style="color: inherit;">GitHub</a>
         </footer>
     </div>
 </body>
@@ -1522,7 +1522,7 @@ def generate_filterable_report(
         </div>
 
         <footer>
-            Linux Game Benchmark &bull; Filter & Compare
+            Linux Game Benchmark &bull; <a href="https://github.com/taaderbe/linuxgamebench" style="color: inherit;">GitHub</a>
         </footer>
     </div>
 
@@ -2350,7 +2350,7 @@ def generate_multi_system_report(
         {system_contents}
 
         <footer>
-            Linux Game Benchmark &bull; Multi-System Report
+            Linux Game Benchmark &bull; <a href="https://github.com/taaderbe/linuxgamebench" style="color: inherit;">GitHub</a>
         </footer>
     </div>
 </body>
@@ -2741,7 +2741,7 @@ def generate_single_resolution_report(
         </table>
 
         <footer>
-            Linux Game Benchmark &bull; {game_name} @ {resolution}
+            Linux Game Benchmark &bull; {game_name} @ {resolution} &bull; <a href="https://github.com/taaderbe/linuxgamebench" style="color: inherit;">GitHub</a>
         </footer>
     </div>
 
@@ -4112,7 +4112,7 @@ def generate_overview_report(
         </div>
 
         <footer>
-            Linux Game Benchmark &bull; All Benchmarks Overview
+            Linux Game Benchmark &bull; <a href="https://github.com/taaderbe/linuxgamebench" style="color: inherit;">GitHub</a>
         </footer>
     </div>
 

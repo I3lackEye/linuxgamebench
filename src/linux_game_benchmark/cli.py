@@ -398,10 +398,10 @@ def benchmark(
         help="Show MangoHud overlay during benchmark",
     ),
     manual_logging: bool = typer.Option(
-        False,
-        "--manual-logging",
+        True,
+        "--manual-logging/--auto-logging",
         "-L",
-        help="Manual logging: press Shift+F2 to start/stop recording",
+        help="Manual logging: press Shift+F2 to start/stop recording (default: enabled)",
     ),
 ) -> None:
     """
