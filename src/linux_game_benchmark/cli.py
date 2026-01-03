@@ -338,95 +338,37 @@ def benchmark(
         ...,
         help="Game App ID or name to benchmark",
     ),
-    runs: int = typer.Option(
-        3,
-        "--runs",
-        "-r",
-        help="Number of benchmark runs",
-    ),
-    warmup: int = typer.Option(
-        1,
-        "--warmup",
-        "-w",
-        help="Number of warmup runs (not counted in results)",
-    ),
-    duration: int = typer.Option(
-        60,
-        "--duration",
-        "-d",
-        help="Duration per run in seconds (for timed benchmarks)",
-    ),
-    builtin: bool = typer.Option(
-        False,
-        "--builtin",
-        "-B",
-        help="Use game's builtin benchmark (auto-starts via command line)",
-    ),
-    manual: bool = typer.Option(
-        False,
-        "--manual",
-        "-m",
-        help="Manual mode: start benchmark in-game, close game when done",
-    ),
-    gamescope: bool = typer.Option(
-        False,
-        "--gamescope",
-        "-g",
-        help="Run with Gamescope wrapper",
-    ),
-    proton: Optional[str] = typer.Option(
-        None,
-        "--proton",
-        "-p",
-        help="Proton version to use",
-    ),
-    output: Optional[Path] = typer.Option(
-        None,
-        "--output",
-        "-o",
-        help="Output directory for results",
-    ),
-    cooldown: int = typer.Option(
-        10,
-        "--cooldown",
-        "-c",
-        help="Cooldown between runs in seconds",
-    ),
     show_hud: bool = typer.Option(
         True,
         "--show-hud/--no-hud",
         help="Show MangoHud overlay during benchmark",
     ),
-    manual_logging: bool = typer.Option(
-        True,
-        "--manual-logging/--auto-logging",
-        "-L",
-        help="Manual logging: press Shift+F2 to start/stop recording (default: enabled)",
-    ),
 ) -> None:
     """
     Run benchmark for a game.
 
-    Starts the game, records performance data with MangoHud,
-    and generates a report with FPS metrics, stutter analysis, etc.
+    Starts the game and allows multiple benchmark recordings with Shift+F2.
+    After each recording, you can choose to continue or end the session.
     """
-    from rich.progress import Progress, SpinnerColumn, TextColumn
+    import time
     from linux_game_benchmark.steam.library_scanner import SteamLibraryScanner
-    from linux_game_benchmark.benchmark.runner import (
-        BenchmarkRunner,
-        BenchmarkConfig,
-        BenchmarkType,
-    )
+    from linux_game_benchmark.benchmark.game_launcher import GameLauncher
+    from linux_game_benchmark.mangohud.config_manager import MangoHudConfigManager
     from linux_game_benchmark.mangohud.manager import check_mangohud_installation
+    from linux_game_benchmark.analysis.metrics import FrametimeAnalyzer
+    from linux_game_benchmark.benchmark.storage import BenchmarkStorage, SystemFingerprint
+    from linux_game_benchmark.analysis.report_generator import generate_multi_resolution_report
+    from linux_game_benchmark.system.hardware_info import get_system_info
+    from linux_game_benchmark.steam.launch_options import set_launch_options, restore_launch_options
+    from linux_game_benchmark.api import is_logged_in, upload_benchmark, check_api_status
+    from linux_game_benchmark.api.auth import login_with_steam
 
     # Check MangoHud
     mangohud_info = check_mangohud_installation()
     if not mangohud_info["installed"]:
         console.print("[red]Error: MangoHud is not installed.[/red]")
-        console.print("Install it with: sudo pacman -S mangohud (Arch) or apt install mangohud (Debian/Ubuntu)")
+        console.print("Install with: sudo pacman -S mangohud (Arch) or apt install mangohud (Debian/Ubuntu)")
         raise typer.Exit(1)
-
-    console.print(f"[dim]MangoHud: {mangohud_info.get('version', 'installed')}[/dim]")
 
     # Find the game
     scanner = SteamLibraryScanner()
@@ -436,7 +378,6 @@ def benchmark(
         console.print(f"[red]Error scanning Steam library: {e}[/red]")
         raise typer.Exit(1)
 
-    # Match game by ID or name
     target_game = None
     try:
         app_id = int(game)
@@ -449,312 +390,272 @@ def benchmark(
         console.print("Use 'lgb list' to see installed games.")
         raise typer.Exit(1)
 
-    console.print(f"\n[bold]Game:[/bold] {target_game['name']}")
-    console.print(f"[bold]App ID:[/bold] {target_game['app_id']}")
+    # Header
+    console.print(f"\n[bold cyan]╔══════════════════════════════════════════╗[/bold cyan]")
+    console.print(f"[bold cyan]║           BENCHMARK SESSION              ║[/bold cyan]")
+    console.print(f"[bold cyan]╚══════════════════════════════════════════╝[/bold cyan]\n")
+    console.print(f"[bold]Game:[/bold] {target_game['name']}")
+    console.print(f"[bold]App ID:[/bold] {target_game['app_id']}\n")
 
-    # Determine benchmark type
-    if manual:
-        bench_type = BenchmarkType.MANUAL
-        launch_args = []
-        console.print("[bold]Mode:[/bold] Manual (start benchmark in-game, close when done)")
-    elif builtin and target_game.get("has_builtin_benchmark"):
-        bench_type = BenchmarkType.BUILTIN
-        launch_args = target_game.get("benchmark_args", [])
-        console.print("[bold]Mode:[/bold] Builtin benchmark (auto-start)")
-    else:
-        bench_type = BenchmarkType.TIMED
-        launch_args = []
-        console.print(f"[bold]Mode:[/bold] Timed ({duration}s per run)")
+    console.print("[bold yellow]Controls:[/bold yellow]")
+    console.print("  [bold red]Shift+F2[/bold red] → START recording")
+    console.print("  [bold red]Shift+F2[/bold red] → STOP recording\n")
 
-    console.print(f"[bold]Runs:[/bold] {runs} + {warmup} warmup\n")
+    # Setup
+    system_info = get_system_info()
+    storage = BenchmarkStorage()
+    mangohud_manager = MangoHudConfigManager()
+    output_dir = Path.home() / "benchmark_results" / "benchmark_session"
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create config
-    config = BenchmarkConfig(
-        app_id=target_game["app_id"],
-        game_name=target_game["name"],
-        benchmark_type=bench_type,
-        launch_args=launch_args,
-        duration_seconds=duration,
-        runs=runs,
-        warmup_runs=warmup,
-        cooldown_seconds=cooldown,
-        proton_version=proton,
-        use_gamescope=gamescope,
+    steam_app_id = target_game["app_id"]
+
+    # Configure MangoHud for manual logging (no duration limit)
+    mangohud_manager.backup_config()
+    mangohud_manager.set_benchmark_config(
+        output_folder=output_dir,
         show_hud=show_hud,
-        manual_logging=manual_logging,
+        manual_logging=True,
+        log_duration=0,  # No auto-stop
     )
 
-    if manual_logging:
-        console.print("[bold yellow]Manual Logging enabled:[/bold yellow]")
-        console.print("  Press [bold red]Shift+F2[/bold red] to START recording")
-        console.print("  Press [bold red]Shift+F2[/bold red] again to STOP\n")
+    # Set Steam launch options
+    try:
+        set_launch_options(steam_app_id, "MANGOHUD=1 %command%")
+    except Exception as e:
+        console.print(f"[yellow]Warning: Could not set launch options: {e}[/yellow]")
 
-    # Status callback
-    def on_status(msg: str) -> None:
-        console.print(f"  {msg}")
+    # Check/save fingerprint
+    fp = SystemFingerprint.from_system_info(system_info)
+    if not storage.check_fingerprint(steam_app_id, fp):
+        console.print("[yellow]System config changed - archiving old data[/yellow]")
+        storage.archive_old_data(steam_app_id)
+    storage.save_fingerprint(steam_app_id, fp, system_info)
 
-    # Run benchmark
-    runner = BenchmarkRunner(
-        output_dir=output,
-        on_status=on_status,
-    )
+    # Register game
+    from linux_game_benchmark.games.registry import GameRegistry
+    registry = GameRegistry(base_dir=storage.base_dir)
+    registry.get_or_create(steam_app_id=steam_app_id, display_name=target_game["name"])
 
-    # Check requirements
-    reqs = runner.check_requirements()
-    if not reqs["mangohud"]["installed"]:
-        console.print("[red]MangoHud not found![/red]")
-        raise typer.Exit(1)
+    # Track processed logs and recordings
+    processed_logs = set()
+    for existing in output_dir.glob("*.csv"):
+        if "_summary" not in existing.name:
+            processed_logs.add(existing.name)
 
-    console.print("[bold cyan]Starting benchmark...[/bold cyan]\n")
+    recordings = []  # Store all recording data for final upload
+
+    def get_new_logs():
+        """Find new completed log files."""
+        new_logs = []
+        for log_file in output_dir.glob("*.csv"):
+            if "_summary" not in log_file.name and log_file.name not in processed_logs:
+                size1 = log_file.stat().st_size
+                time.sleep(0.5)
+                size2 = log_file.stat().st_size
+                if size1 == size2 and size1 > 1000:
+                    new_logs.append(log_file)
+        return new_logs
+
+    def process_recording(log_path: Path) -> bool:
+        """Process a recording. Returns False if user wants to end session."""
+        console.print(f"\n[bold green]═══ Recording complete! ═══[/bold green]")
+
+        try:
+            analyzer = FrametimeAnalyzer(log_path)
+            metrics = analyzer.analyze()
+            fps = metrics.get("fps", {})
+
+            # Calculate duration
+            duration_sec = fps.get('duration_seconds', 0)
+            minutes = int(duration_sec // 60)
+            seconds = int(duration_sec % 60)
+            frames = fps.get('frame_count', 0)
+
+            console.print(f"\n  [bold]Recorded:[/bold] {minutes}m {seconds}s, {frames} frames")
+            console.print(f"  [bold]AVG FPS:[/bold] {fps.get('average', 0):.1f}")
+            console.print(f"  [bold]1% Low:[/bold] {fps.get('1_percent_low', 0):.1f}")
+
+            # Store for later
+            recordings.append({
+                "metrics": metrics,
+                "log_path": log_path,
+                "frametimes": analyzer.frametimes if hasattr(analyzer, 'frametimes') else None,
+            })
+
+        except Exception as e:
+            console.print(f"[red]Analysis error: {e}[/red]")
+            return True  # Continue session
+
+        # Ask to end session
+        console.print(f"\n[bold]End benchmark session?[/bold]")
+        try:
+            end_choice = typer.prompt("[Y/n]", default="n").strip().lower()
+        except:
+            return True
+
+        if end_choice in ["y", "yes", "j", "ja"]:
+            return False  # End session
+
+        console.print(f"\n[bold yellow]Waiting for next recording ([bold red]Shift+F2[/bold red])...[/bold yellow]")
+        return True  # Continue session
+
+    # Launch game
+    console.print("[bold]Starting game...[/bold]")
+    launcher = GameLauncher()
 
     try:
-        session = runner.run(config)
+        success = launcher.launch(
+            app_id=steam_app_id,
+            wait_for_ready=True,
+            ready_timeout=120.0,
+            verbose=True,
+        )
+
+        if not success:
+            console.print("[red]Timeout: Game process not detected[/red]")
+            raise typer.Exit(1)
+
+        console.print(f"[green]Game running![/green]")
+        console.print(f"\n[bold yellow]Press [bold red]Shift+F2[/bold red] to start recording...[/bold yellow]\n")
+
+        # Monitor for recordings
+        session_active = True
+        while launcher.is_running() and session_active:
+            new_logs = get_new_logs()
+            for log_path in new_logs:
+                processed_logs.add(log_path.name)
+                session_active = process_recording(log_path)
+                if not session_active:
+                    break
+
+            time.sleep(1.0)
+
+        # Check for any final logs
+        time.sleep(2.0)
+        new_logs = get_new_logs()
+        for log_path in new_logs:
+            processed_logs.add(log_path.name)
+            process_recording(log_path)
+
     except KeyboardInterrupt:
-        console.print("\n[yellow]Benchmark interrupted by user.[/yellow]")
-        raise typer.Exit(1)
-    except Exception as e:
-        console.print(f"\n[red]Benchmark failed: {e}[/red]")
-        raise typer.Exit(1)
+        console.print("\n[yellow]Cancelled[/yellow]")
+    finally:
+        mangohud_manager.restore_config()
+        try:
+            restore_launch_options(steam_app_id)
+        except:
+            pass
 
-    # Display results
-    console.print("\n" + "=" * 50)
-    console.print("[bold green]Benchmark Complete![/bold green]\n")
+    # End of session - process recordings
+    if not recordings:
+        console.print("\n[yellow]No recordings captured.[/yellow]")
+        raise typer.Exit(0)
 
-    # Ask for resolution used during benchmark
-    console.print("[bold]Which resolution was used in the benchmark?[/bold]")
+    console.print(f"\n[bold cyan]═══ Session ended: {len(recordings)} recording(s) ═══[/bold cyan]")
+
+    # Ask for resolution
+    console.print(f"\n[bold]Which resolution was used?[/bold]")
     console.print("  [1] FHD  (1920×1080)")
     console.print("  [2] WQHD (2560×1440)")
     console.print("  [3] UHD  (3840×2160)")
-    console.print("  [0] Cancel (don't save)")
+    console.print("  [0] Discard all")
 
-    resolution_map = {
-        "1": "1920x1080",
-        "2": "2560x1440",
-        "3": "3840x2160",
-    }
-    resolution_choice = typer.prompt("Choice", default="1")
-
-    if resolution_choice == "0":
-        console.print("\n[yellow]Benchmark cancelled - data not saved.[/yellow]")
-        if session.output_dir:
-            console.print(f"[dim]Raw data remains in: {session.output_dir}[/dim]")
+    resolution_map = {"1": "1920x1080", "2": "2560x1440", "3": "3840x2160"}
+    try:
+        res_choice = typer.prompt("Choice", default="1")
+    except:
         raise typer.Exit(0)
 
-    selected_resolution = resolution_map.get(resolution_choice, "1920x1080")
+    if res_choice == "0":
+        console.print("[yellow]Recordings discarded.[/yellow]")
+        raise typer.Exit(0)
 
-    console.print(f"\n[dim]Resolution: {selected_resolution}[/dim]")
+    selected_resolution = resolution_map.get(res_choice, "1920x1080")
 
-    # Use new storage system
-    from linux_game_benchmark.benchmark.storage import BenchmarkStorage, SystemFingerprint
-    from linux_game_benchmark.analysis.report_generator import generate_multi_resolution_report
+    # Save all recordings
+    for rec in recordings:
+        storage.save_run(
+            game_id=steam_app_id,
+            resolution=selected_resolution,
+            metrics=rec["metrics"],
+            log_path=rec["log_path"],
+            frametimes=rec["frametimes"],
+        )
 
-    storage = BenchmarkStorage()
+    console.print(f"[green]✓ Saved {len(recordings)} recording(s) at {selected_resolution}[/green]")
 
-    # Check system fingerprint
-    current_fp = SystemFingerprint.from_system_info(session.system_info)
-
-    # Get Steam App ID for storage (canonical identifier)
-    steam_app_id = target_game["app_id"]
-
-    if not storage.check_fingerprint(steam_app_id, current_fp):
-        console.print("\n[yellow]System configuration has changed![/yellow]")
-        console.print("[dim]Archiving old benchmark data...[/dim]")
-        archive_path = storage.archive_old_data(steam_app_id)
-        if archive_path:
-            console.print(f"[dim]Archived to: {archive_path}[/dim]")
-
-    # Save fingerprint and system info
-    storage.save_fingerprint(steam_app_id, current_fp, session.system_info)
-
-    # Register game in registry (creates game_info.json)
-    from linux_game_benchmark.games.registry import GameRegistry
-    registry = GameRegistry(base_dir=storage.base_dir)
-    registry.get_or_create(
-        steam_app_id=steam_app_id,
-        display_name=target_game["name"],
-    )
-
-    # Get metrics from results and save run
-    if session.results:
-        for result in session.results:
-            if not result.is_warmup and result.metrics:
-                # Re-analyze to get frametimes for charting
-                from linux_game_benchmark.analysis.metrics import FrametimeAnalyzer
-                try:
-                    analyzer = FrametimeAnalyzer(result.log_path)
-                    frametimes = analyzer.frametimes
-                except:
-                    frametimes = None
-
-                storage.save_run(
-                    game_id=steam_app_id,
-                    resolution=selected_resolution,
-                    metrics=result.metrics,
-                    log_path=result.log_path,
-                    frametimes=frametimes,
-                )
-
-    # Generate multi-resolution report
+    # Generate report
     all_resolutions = storage.get_all_resolutions(steam_app_id)
     if all_resolutions:
-        resolution_data = {}
-        for res, runs in all_resolutions.items():
-            resolution_data[res] = storage.aggregate_runs(runs)
-
+        resolution_data = {res: storage.aggregate_runs(runs) for res, runs in all_resolutions.items()}
         report_path = storage.get_report_path(steam_app_id)
         generate_multi_resolution_report(
-            game_name=target_game["name"],  # Keep display name for report
+            game_name=target_game["name"],
             app_id=steam_app_id,
-            system_info=session.system_info,
+            system_info=system_info,
             resolution_data=resolution_data,
             output_path=report_path,
-            runs_data=all_resolutions,  # Pass individual runs for charting
+            runs_data=all_resolutions,
         )
-        console.print(f"\n[bold]Report:[/bold] {report_path}")
+        console.print(f"[bold]Report:[/bold] {report_path}")
 
-    if session.output_dir:
-        console.print(f"[dim]Raw data: {session.output_dir}[/dim]\n")
+    # Calculate aggregated metrics for upload
+    all_metrics = [rec["metrics"] for rec in recordings]
+    avg_fps = sum(m.get("fps", {}).get("average", 0) for m in all_metrics) / len(all_metrics)
+    avg_min = sum(m.get("fps", {}).get("minimum", 0) for m in all_metrics) / len(all_metrics)
+    avg_1low = sum(m.get("fps", {}).get("1_percent_low", 0) for m in all_metrics) / len(all_metrics)
+    avg_01low = sum(m.get("fps", {}).get("0.1_percent_low", 0) for m in all_metrics) / len(all_metrics)
 
-    # Summary
-    summary = session.summary
-    if "error" not in summary:
-        fps = summary.get("fps", {})
-        console.print("[bold cyan]FPS Summary (averaged across runs)[/bold cyan]")
-        console.print(f"  Average:    {fps.get('average', 0):.1f} FPS")
-        console.print(f"  Minimum:    {fps.get('minimum', 0):.1f} FPS")
-        console.print(f"  1% Low:     {fps.get('1_percent_low', 0):.1f} FPS")
-        console.print(f"  0.1% Low:   {fps.get('0.1_percent_low', 0):.1f} FPS")
-
-        stutter = summary.get("stutter", {})
-        frame_pacing = summary.get("frame_pacing", {})
-
-        if stutter or frame_pacing:
-            console.print(f"\n[bold cyan]Performance Quality[/bold cyan]")
-
-            # Stutter (events/spikes)
-            if stutter:
-                rating = stutter.get('stutter_rating', 'unknown')
-                rating_color = {
-                    'excellent': 'green',
-                    'good': 'green',
-                    'moderate': 'yellow',
-                    'poor': 'red'
-                }.get(rating, 'white')
-                event_count = stutter.get('gameplay_stutter_count', 0)
-                console.print(f"  Stutter Events: [{rating_color}]{rating}[/{rating_color}] ({event_count} events)")
-
-            # Frame consistency (variance)
-            if frame_pacing:
-                rating = frame_pacing.get('consistency_rating', 'unknown')
-                rating_color = {
-                    'excellent': 'green',
-                    'good': 'green',
-                    'moderate': 'yellow',
-                    'poor': 'red'
-                }.get(rating, 'white')
-                cv = frame_pacing.get('cv_percent', 0)
-                stability = frame_pacing.get('fps_stability', 0)
-                console.print(f"  Consistency: [{rating_color}]{rating}[/{rating_color}] (CV: {cv:.1f}%, Stability: {stability:.1f}%)")
-
-        # Consistency
-        consistency = summary.get("consistency", {})
-        if consistency:
-            avg_cv = consistency.get("average_cv", 0)
-            if avg_cv < 5:
-                consistency_rating = "[green]Excellent[/green]"
-            elif avg_cv < 10:
-                consistency_rating = "[yellow]Good[/yellow]"
-            else:
-                consistency_rating = "[red]Variable[/red]"
-            console.print(f"\n[bold cyan]Run Consistency[/bold cyan]")
-            console.print(f"  Variation: {avg_cv:.1f}% - {consistency_rating}")
-
-        # FPS targets
-        fps_targets = summary.get("fps_targets", {})
-        if fps_targets:
-            console.print(f"\n[bold cyan]FPS Target Evaluation[/bold cyan]")
-            targets_dict = fps_targets.get("targets", {})
-            for target_name, result in targets_dict.items():
-                if isinstance(result, dict):
-                    target_fps = result.get("target_fps", 0)
-                    meets = result.get("meets_target", False)
-                    rating = result.get("rating", "")
-                    if meets:
-                        status = "[green]✓[/green]"
-                    elif rating == "playable":
-                        status = "[yellow]~[/yellow]"
-                    else:
-                        status = "[red]✗[/red]"
-                    console.print(f"  {target_fps} Hz: {status} ({rating})")
-
-            recommended = fps_targets.get("recommended", {})
-            if recommended:
-                rec_fps = recommended.get("fps", 0)
-                rec_rating = recommended.get("rating", "")
-                console.print(f"  [bold]Recommended:[/bold] {rec_fps} Hz ({rec_rating})")
-    else:
-        console.print(f"[yellow]{summary.get('error')}[/yellow]")
+    # FPS Summary
+    console.print(f"\n[bold cyan]FPS Summary[/bold cyan]")
+    console.print(f"  Average:  {avg_fps:.1f} FPS")
+    console.print(f"  Minimum:  {avg_min:.1f} FPS")
+    console.print(f"  1% Low:   {avg_1low:.1f} FPS")
+    console.print(f"  0.1% Low: {avg_01low:.1f} FPS")
 
     # Upload prompt
-    _prompt_upload(
+    console.print(f"\n" + "─" * 50)
+    console.print("[bold]Upload to community database?[/bold]")
+
+    # Check login status
+    if not is_logged_in():
+        console.print("[dim]Not logged in. Login now to upload.[/dim]")
+        try:
+            login_choice = typer.prompt("Login with Steam? [Y/n]", default="y").strip().lower()
+        except:
+            raise typer.Exit(0)
+
+        if login_choice in ["y", "yes", "j", "ja", ""]:
+            session = login_with_steam(timeout=120)
+            if not session:
+                console.print("[red]Login failed.[/red]")
+                raise typer.Exit(0)
+            console.print(f"[green]✓ Logged in as {session.steam_id}[/green]")
+        else:
+            console.print("[dim]Not uploaded.[/dim]")
+            raise typer.Exit(0)
+
+    # Ask to upload
+    try:
+        upload_choice = typer.prompt("Upload? [Y/n]", default="y").strip().lower()
+    except:
+        raise typer.Exit(0)
+
+    if upload_choice not in ["y", "yes", "j", "ja", ""]:
+        console.print("[dim]Not uploaded.[/dim]")
+        raise typer.Exit(0)
+
+    # Check API and upload
+    console.print("[dim]Connecting...[/dim]")
+    if not check_api_status():
+        console.print("[red]Server unreachable. Try 'lgb upload' later.[/red]")
+        raise typer.Exit(0)
+
+    result = upload_benchmark(
         steam_app_id=steam_app_id,
         game_name=target_game["name"],
         resolution=selected_resolution,
-        system_info=session.system_info,
-        summary=summary,
-    )
-
-
-def _prompt_upload(
-    steam_app_id: int,
-    game_name: str,
-    resolution: str,
-    system_info: dict,
-    summary: dict,
-) -> None:
-    """Ask user if they want to upload the benchmark."""
-    from linux_game_benchmark.api import is_logged_in, upload_benchmark, check_api_status
-
-    console.print("\n" + "─" * 50)
-
-    # Check if logged in
-    if not is_logged_in():
-        console.print("[dim]Upload? Please login first: lgb login[/dim]")
-        return
-
-    # Ask for upload
-    console.print("[bold]Upload benchmark to community database?[/bold]")
-    try:
-        choice = typer.prompt("Upload? [Y/n]", default="y").strip().lower()
-    except:
-        return
-
-    if choice not in ["j", "y", "ja", "yes", ""]:
-        console.print("[dim]Not uploaded.[/dim]")
-        return
-
-    # Check API
-    console.print("[dim]Connecting to server...[/dim]")
-    if not check_api_status():
-        console.print("[red]Server unreachable. Try later with 'lgb upload'.[/red]")
-        return
-
-    # Get metrics from summary
-    fps = summary.get("fps", {})
-    metrics = {
-        "fps_avg": fps.get("average", 0),
-        "fps_min": fps.get("minimum", 0),
-        "fps_1low": fps.get("1_percent_low", 0),
-        "fps_01low": fps.get("0.1_percent_low", 0),
-        "stutter_rating": summary.get("stutter", {}).get("stutter_rating"),
-        "consistency_rating": summary.get("frame_pacing", {}).get("consistency_rating"),
-    }
-
-    # Upload
-    result = upload_benchmark(
-        steam_app_id=steam_app_id,
-        game_name=game_name,
-        resolution=resolution,
         system_info={
             "gpu": system_info.get("gpu", {}).get("model", "Unknown"),
             "cpu": system_info.get("cpu", {}).get("model", "Unknown"),
@@ -762,15 +663,20 @@ def _prompt_upload(
             "kernel": system_info.get("os", {}).get("kernel"),
             "ram_gb": int(system_info.get("ram", {}).get("total_gb", 0)),
         },
-        metrics=metrics,
+        metrics={
+            "fps_avg": avg_fps,
+            "fps_min": avg_min,
+            "fps_1low": avg_1low,
+            "fps_01low": avg_01low,
+        },
     )
 
     if result.success:
         console.print(f"[bold green]✓ Uploaded![/bold green]")
-        console.print(f"  {result.url}")
+        if result.url:
+            console.print(f"  {result.url}")
     else:
         console.print(f"[red]Upload failed: {result.error}[/red]")
-        console.print("[dim]Try again later with 'lgb upload'.[/dim]")
 
 
 @app.command()
