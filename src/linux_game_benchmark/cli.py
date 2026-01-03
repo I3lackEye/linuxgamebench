@@ -485,9 +485,9 @@ def benchmark(
     )
 
     if manual_logging:
-        console.print("[bold yellow]Manual Logging aktiviert:[/bold yellow]")
-        console.print("  Drücke [bold]Shift+F2[/bold] um Aufnahme zu STARTEN")
-        console.print("  Drücke [bold]Shift+F2[/bold] erneut um zu STOPPEN\n")
+        console.print("[bold yellow]Manual Logging enabled:[/bold yellow]")
+        console.print("  Press [bold red]Shift+F2[/bold red] to START recording")
+        console.print("  Press [bold red]Shift+F2[/bold red] again to STOP\n")
 
     # Status callback
     def on_status(msg: str) -> None:
@@ -521,28 +521,28 @@ def benchmark(
     console.print("[bold green]Benchmark Complete![/bold green]\n")
 
     # Ask for resolution used during benchmark
-    console.print("[bold]Welche Auflösung wurde im Benchmark verwendet?[/bold]")
+    console.print("[bold]Which resolution was used in the benchmark?[/bold]")
     console.print("  [1] FHD  (1920×1080)")
     console.print("  [2] WQHD (2560×1440)")
     console.print("  [3] UHD  (3840×2160)")
-    console.print("  [0] Abbrechen (nicht speichern)")
+    console.print("  [0] Cancel (don't save)")
 
     resolution_map = {
         "1": "1920x1080",
         "2": "2560x1440",
         "3": "3840x2160",
     }
-    resolution_choice = typer.prompt("Auswahl", default="1")
+    resolution_choice = typer.prompt("Choice", default="1")
 
     if resolution_choice == "0":
-        console.print("\n[yellow]Benchmark abgebrochen - Daten nicht gespeichert.[/yellow]")
+        console.print("\n[yellow]Benchmark cancelled - data not saved.[/yellow]")
         if session.output_dir:
-            console.print(f"[dim]Raw data bleibt in: {session.output_dir}[/dim]")
+            console.print(f"[dim]Raw data remains in: {session.output_dir}[/dim]")
         raise typer.Exit(0)
 
     selected_resolution = resolution_map.get(resolution_choice, "1920x1080")
 
-    console.print(f"\n[dim]Auflösung: {selected_resolution}[/dim]")
+    console.print(f"\n[dim]Resolution: {selected_resolution}[/dim]")
 
     # Use new storage system
     from linux_game_benchmark.benchmark.storage import BenchmarkStorage, SystemFingerprint
@@ -557,11 +557,11 @@ def benchmark(
     steam_app_id = target_game["app_id"]
 
     if not storage.check_fingerprint(steam_app_id, current_fp):
-        console.print("\n[yellow]System-Konfiguration hat sich geändert![/yellow]")
-        console.print("[dim]Alte Benchmark-Daten werden archiviert...[/dim]")
+        console.print("\n[yellow]System configuration has changed![/yellow]")
+        console.print("[dim]Archiving old benchmark data...[/dim]")
         archive_path = storage.archive_old_data(steam_app_id)
         if archive_path:
-            console.print(f"[dim]Archiviert nach: {archive_path}[/dim]")
+            console.print(f"[dim]Archived to: {archive_path}[/dim]")
 
     # Save fingerprint and system info
     storage.save_fingerprint(steam_app_id, current_fp, session.system_info)
@@ -719,24 +719,24 @@ def _prompt_upload(
 
     # Check if logged in
     if not is_logged_in():
-        console.print("[dim]Hochladen? Bitte zuerst einloggen: lgb login[/dim]")
+        console.print("[dim]Upload? Please login first: lgb login[/dim]")
         return
 
     # Ask for upload
-    console.print("[bold]Benchmark zur Community-Datenbank hochladen?[/bold]")
+    console.print("[bold]Upload benchmark to community database?[/bold]")
     try:
-        choice = typer.prompt("Hochladen? [J/n]", default="j").strip().lower()
+        choice = typer.prompt("Upload? [Y/n]", default="y").strip().lower()
     except:
         return
 
     if choice not in ["j", "y", "ja", "yes", ""]:
-        console.print("[dim]Nicht hochgeladen.[/dim]")
+        console.print("[dim]Not uploaded.[/dim]")
         return
 
     # Check API
-    console.print("[dim]Verbinde mit Server...[/dim]")
+    console.print("[dim]Connecting to server...[/dim]")
     if not check_api_status():
-        console.print("[red]Server nicht erreichbar. Später mit 'lgb upload' versuchen.[/red]")
+        console.print("[red]Server unreachable. Try later with 'lgb upload'.[/red]")
         return
 
     # Get metrics from summary
@@ -766,11 +766,11 @@ def _prompt_upload(
     )
 
     if result.success:
-        console.print(f"[bold green]✓ Hochgeladen![/bold green]")
+        console.print(f"[bold green]✓ Uploaded![/bold green]")
         console.print(f"  {result.url}")
     else:
-        console.print(f"[red]Upload fehlgeschlagen: {result.error}[/red]")
-        console.print("[dim]Später mit 'lgb upload' erneut versuchen.[/dim]")
+        console.print(f"[red]Upload failed: {result.error}[/red]")
+        console.print("[dim]Try again later with 'lgb upload'.[/dim]")
 
 
 @app.command()
@@ -881,14 +881,14 @@ def record(
     ),
 ) -> None:
     """
-    Interaktiver Multi-Recording Modus.
+    Interactive multi-recording mode.
 
-    Startet das Spiel einmal und erlaubt mehrere Aufnahmen:
-    - Shift+F2: Aufnahme starten
-    - Nach 60s (oder --duration): Aufnahme stoppt automatisch
-    - Auflösung wählen → speichern
-    - Wiederholen für weitere Aufnahmen
-    - Spiel schließen wenn fertig
+    Starts the game once and allows multiple recordings:
+    - Shift+F2: Start recording
+    - After 60s (or --duration): Recording stops automatically
+    - Select resolution → save
+    - Repeat for more recordings
+    - Close game when finished
     """
     import time
     import threading
@@ -922,21 +922,21 @@ def record(
         raise typer.Exit(1)
 
     console.print(f"\n[bold cyan]╔══════════════════════════════════════════╗[/bold cyan]")
-    console.print(f"[bold cyan]║     INTERAKTIVER BENCHMARK MODUS         ║[/bold cyan]")
+    console.print(f"[bold cyan]║     INTERACTIVE BENCHMARK MODE           ║[/bold cyan]")
     console.print(f"[bold cyan]╚══════════════════════════════════════════╝[/bold cyan]\n")
     console.print(f"[bold]Game:[/bold] {target_game['name']}")
     console.print(f"[bold]App ID:[/bold] {target_game['app_id']}\n")
 
     if duration > 0:
-        console.print("[bold yellow]Steuerung:[/bold yellow]")
-        console.print(f"  [bold]Shift+F2[/bold] → Aufnahme starten (läuft {duration}s)")
-        console.print(f"  [bold]Automatischer Stop[/bold] nach {duration} Sekunden")
-        console.print("  [bold]Spiel schließen[/bold] → Beenden\n")
+        console.print("[bold yellow]Controls:[/bold yellow]")
+        console.print(f"  [bold red]Shift+F2[/bold red] → Start recording (runs {duration}s)")
+        console.print(f"  [bold]Auto-stop[/bold] after {duration} seconds")
+        console.print("  [bold]Close game[/bold] → Exit\n")
     else:
-        console.print("[bold yellow]Steuerung:[/bold yellow]")
-        console.print("  [bold]Shift+F2[/bold] → Aufnahme STARTEN")
-        console.print("  [bold]Shift+F2[/bold] → Aufnahme STOPPEN")
-        console.print("  [bold]Spiel schließen[/bold] → Beenden\n")
+        console.print("[bold yellow]Controls:[/bold yellow]")
+        console.print("  [bold red]Shift+F2[/bold red] → START recording")
+        console.print("  [bold red]Shift+F2[/bold red] → STOP recording")
+        console.print("  [bold]Close game[/bold] → Exit\n")
 
     # Setup
     system_info = get_system_info()
@@ -964,7 +964,7 @@ def record(
     steam_app_id = target_game["app_id"]
     fp = SystemFingerprint.from_system_info(system_info)
     if not storage.check_fingerprint(steam_app_id, fp):
-        console.print("[yellow]System-Config geändert - alte Daten werden archiviert[/yellow]")
+        console.print("[yellow]System config changed - archiving old data[/yellow]")
         storage.archive_old_data(steam_app_id)
     storage.save_fingerprint(steam_app_id, fp, system_info)
 
@@ -1001,7 +1001,7 @@ def record(
         """Process a completed log file."""
         nonlocal recording_count
 
-        console.print(f"\n[bold green]═══ Aufnahme erkannt! ═══[/bold green]")
+        console.print(f"\n[bold green]═══ Recording detected! ═══[/bold green]")
 
         try:
             analyzer = FrametimeAnalyzer(log_path)
@@ -1013,25 +1013,25 @@ def record(
             console.print(f"  AVG FPS: {fps.get('average', 0):.1f}")
             console.print(f"  1% Low: {fps.get('1_percent_low', 0):.1f}")
         except Exception as e:
-            console.print(f"[red]Analyse-Fehler: {e}[/red]")
+            console.print(f"[red]Analysis error: {e}[/red]")
             return False
 
         # Ask for resolution
-        console.print(f"\n[bold]Auflösung?[/bold]")
+        console.print(f"\n[bold]Resolution?[/bold]")
         console.print("  [1] FHD (1920×1080)")
         console.print("  [2] WQHD (2560×1440)")
         console.print("  [3] UHD (3840×2160)")
-        console.print("  [0] Verwerfen")
+        console.print("  [0] Discard")
 
         resolution_map = {"1": "1920x1080", "2": "2560x1440", "3": "3840x2160"}
 
         try:
-            choice = typer.prompt("Auswahl", default="1")
+            choice = typer.prompt("Choice", default="1")
         except:
             return False
 
         if choice == "0":
-            console.print("[yellow]Verworfen[/yellow]")
+            console.print("[yellow]Discarded[/yellow]")
             return True
 
         resolution = resolution_map.get(choice, "1920x1080")
@@ -1046,29 +1046,29 @@ def record(
         )
         recording_count += 1
 
-        console.print(f"[green]✓ Gespeichert als {resolution}[/green]")
-        console.print(f"[dim]Total: {recording_count} Aufnahme(n)[/dim]")
+        console.print(f"[green]✓ Saved as {resolution}[/green]")
+        console.print(f"[dim]Total: {recording_count} recording(s)[/dim]")
 
         # Ask if user wants to continue or stop
-        console.print(f"\n[bold]Was möchtest du tun?[/bold]")
-        console.print("  [1] Weiter aufnehmen (Shift+F2 für nächste Aufnahme)")
-        console.print("  [2] Beenden und Report generieren")
+        console.print(f"\n[bold]What would you like to do?[/bold]")
+        console.print("  [1] Continue recording ([bold red]Shift+F2[/bold red] for next)")
+        console.print("  [2] Finish and generate report")
 
         try:
-            continue_choice = typer.prompt("Auswahl", default="1")
+            continue_choice = typer.prompt("Choice", default="1")
         except:
             return True
 
         if continue_choice == "2":
-            console.print("[cyan]Recording wird beendet...[/cyan]")
+            console.print("[cyan]Finishing recording...[/cyan]")
             return False  # Signal to stop
 
-        console.print(f"\n[bold yellow]Bereit für nächste Aufnahme (Shift+F2)...[/bold yellow]")
+        console.print(f"\n[bold yellow]Ready for next recording ([bold red]Shift+F2[/bold red])...[/bold yellow]")
         return True
 
     # Launch game
-    console.print("[bold]Starte Spiel...[/bold]")
-    console.print("[dim]Warte auf Spiel-Prozess (max. 120s)...[/dim]")
+    console.print("[bold]Starting game...[/bold]")
+    console.print("[dim]Waiting for game process (max 120s)...[/dim]")
     launcher = GameLauncher()
 
     try:
@@ -1080,8 +1080,8 @@ def record(
         )
 
         if not success:
-            console.print("[red]Timeout: Spiel-Prozess wurde nicht erkannt[/red]")
-            console.print("[yellow]Suche nach laufenden Prozessen...[/yellow]")
+            console.print("[red]Timeout: Game process not detected[/red]")
+            console.print("[yellow]Searching for running processes...[/yellow]")
 
             # Show what processes we can see
             import psutil
@@ -1097,14 +1097,14 @@ def record(
                     pass
 
             if game_like:
-                console.print(f"[dim]Prozesse mit >100MB RAM gefunden:[/dim]")
+                console.print(f"[dim]Processes with >100MB RAM found:[/dim]")
                 for p in game_like[:10]:
                     console.print(f"[dim]  - {p}[/dim]")
 
             raise typer.Exit(1)
 
-        console.print(f"[green]Spiel läuft! (PID: {launcher._game_pids})[/green]")
-        console.print(f"\n[bold yellow]Drücke Shift+F2 um erste Aufnahme zu starten...[/bold yellow]\n")
+        console.print(f"[green]Game running! (PID: {launcher._game_pids})[/green]")
+        console.print(f"\n[bold yellow]Press [bold red]Shift+F2[/bold red] to start first recording...[/bold yellow]\n")
 
         # Manual stop flag
         user_requested_stop = False
@@ -1123,7 +1123,7 @@ def record(
 
         # Check if manually stopped
         if user_requested_stop:
-            console.print("\n[bold cyan]═══ Beende Recording... ═══[/bold cyan]")
+            console.print("\n[bold cyan]═══ Finishing recording... ═══[/bold cyan]")
 
         # Check for any remaining logs after game closes or manual stop
         if not user_requested_stop:
@@ -1134,7 +1134,7 @@ def record(
                 process_log(log_path)
 
     except KeyboardInterrupt:
-        console.print("\n[yellow]Abgebrochen[/yellow]")
+        console.print("\n[yellow]Cancelled[/yellow]")
     finally:
         # Restore configs
         mangohud_manager.restore_config()
@@ -1145,7 +1145,7 @@ def record(
 
     # Generate report if any recordings were made
     if recording_count > 0:
-        console.print(f"\n[bold]Generiere Report...[/bold]")
+        console.print(f"\n[bold]Generating report...[/bold]")
         all_res = storage.get_all_resolutions(steam_app_id)
         if all_res:
             resolution_data = {res: storage.aggregate_runs(runs) for res, runs in all_res.items()}
@@ -1160,26 +1160,26 @@ def record(
             )
             console.print(f"[bold green]Report:[/bold green] {report_path}")
 
-    console.print(f"\n[bold]Session beendet - {recording_count} Aufnahme(n) gespeichert[/bold]")
+    console.print(f"\n[bold]Session ended - {recording_count} recording(s) saved[/bold]")
 
 
 @app.command()
 def login() -> None:
     """
-    Mit Steam-Account einloggen.
+    Login with Steam account.
 
-    Öffnet den Browser für Steam OpenID Login.
-    Nach dem Login können Benchmarks zur Community-Datenbank hochgeladen werden.
+    Opens the browser for Steam OpenID login.
+    After login, benchmarks can be uploaded to the community database.
     """
     from linux_game_benchmark.api.auth import login_with_steam, get_current_session
 
     # Check if already logged in
     session = get_current_session()
     if session:
-        console.print(f"[yellow]Bereits eingeloggt als Steam ID: {session.steam_id}[/yellow]")
+        console.print(f"[yellow]Already logged in as Steam ID: {session.steam_id}[/yellow]")
         if session.steam_name:
             console.print(f"[dim]Name: {session.steam_name}[/dim]")
-        console.print("\nZum Ausloggen: [cyan]lgb logout[/cyan]")
+        console.print("\nTo logout: [cyan]lgb logout[/cyan]")
         return
 
     console.print("[bold]Steam Login[/bold]\n")
@@ -1187,46 +1187,46 @@ def login() -> None:
     try:
         session = login_with_steam(timeout=120)
         if session:
-            console.print(f"\n[bold green]Login erfolgreich![/bold green]")
+            console.print(f"\n[bold green]Login successful![/bold green]")
             console.print(f"  Steam ID: {session.steam_id}")
             if session.steam_name:
                 console.print(f"  Name: {session.steam_name}")
-            console.print("\n[dim]Deine Benchmarks können jetzt hochgeladen werden.[/dim]")
+            console.print("\n[dim]Your benchmarks can now be uploaded.[/dim]")
         else:
-            console.print("\n[red]Login fehlgeschlagen oder abgebrochen.[/red]")
+            console.print("\n[red]Login failed or cancelled.[/red]")
             raise typer.Exit(1)
     except Exception as e:
-        console.print(f"\n[red]Fehler beim Login: {e}[/red]")
+        console.print(f"\n[red]Login error: {e}[/red]")
         raise typer.Exit(1)
 
 
 @app.command()
 def logout() -> None:
     """
-    Vom Steam-Account ausloggen.
+    Logout from Steam account.
 
-    Entfernt die gespeicherten Login-Daten.
+    Removes the stored login credentials.
     """
     from linux_game_benchmark.api.auth import logout as do_logout, get_current_session
 
     session = get_current_session()
     if not session:
-        console.print("[yellow]Nicht eingeloggt.[/yellow]")
+        console.print("[yellow]Not logged in.[/yellow]")
         return
 
     if do_logout():
-        console.print(f"[green]Erfolgreich ausgeloggt.[/green]")
-        console.print(f"[dim]Steam ID {session.steam_id} entfernt.[/dim]")
+        console.print(f"[green]Successfully logged out.[/green]")
+        console.print(f"[dim]Steam ID {session.steam_id} removed.[/dim]")
     else:
-        console.print("[yellow]Bereits ausgeloggt.[/yellow]")
+        console.print("[yellow]Already logged out.[/yellow]")
 
 
 @app.command()
 def status() -> None:
     """
-    Zeigt den aktuellen Login-Status.
+    Show current login status.
 
-    Zeigt ob ein Steam-Account verknüpft ist und weitere Infos.
+    Shows if a Steam account is linked and other info.
     """
     from linux_game_benchmark.api.auth import get_current_session
     from linux_game_benchmark.config.settings import settings
@@ -1235,15 +1235,15 @@ def status() -> None:
 
     session = get_current_session()
     if session:
-        console.print(f"[green]Eingeloggt[/green]")
+        console.print(f"[green]Logged in[/green]")
         console.print(f"  Steam ID: {session.steam_id}")
         if session.steam_name:
             console.print(f"  Name: {session.steam_name}")
-        console.print(f"  Seit: {session.authenticated_at}")
-        console.print(f"\n[dim]Auth-Datei: {settings.AUTH_FILE}[/dim]")
+        console.print(f"  Since: {session.authenticated_at}")
+        console.print(f"\n[dim]Auth file: {settings.AUTH_FILE}[/dim]")
     else:
-        console.print("[yellow]Nicht eingeloggt[/yellow]")
-        console.print("\nZum Einloggen: [cyan]lgb login[/cyan]")
+        console.print("[yellow]Not logged in[/yellow]")
+        console.print("\nTo login: [cyan]lgb login[/cyan]")
 
 
 @app.command()
@@ -1260,10 +1260,10 @@ def upload(
     ),
 ) -> None:
     """
-    Benchmark-Ergebnisse zur Community-Datenbank hochladen.
+    Upload benchmark results to community database.
 
-    Lädt gespeicherte Benchmarks zum Linux Game Bench Server hoch.
-    Erfordert vorherigen Login mit 'lgb login'.
+    Uploads saved benchmarks to the Linux Game Bench server.
+    Requires prior login with 'lgb login'.
     """
     from linux_game_benchmark.api import upload_benchmark, is_logged_in, check_api_status
     from linux_game_benchmark.benchmark.storage import BenchmarkStorage
@@ -1271,18 +1271,18 @@ def upload(
 
     # Check login
     if not is_logged_in():
-        console.print("[red]Nicht eingeloggt![/red]")
-        console.print("Bitte zuerst einloggen: [cyan]lgb login[/cyan]")
+        console.print("[red]Not logged in![/red]")
+        console.print("Please login first: [cyan]lgb login[/cyan]")
         raise typer.Exit(1)
 
     # Check API
-    console.print("[dim]Prüfe Server-Verbindung...[/dim]")
+    console.print("[dim]Checking server connection...[/dim]")
     if not check_api_status():
-        console.print("[red]Server nicht erreichbar![/red]")
-        console.print("[dim]Bitte später erneut versuchen.[/dim]")
+        console.print("[red]Server unreachable![/red]")
+        console.print("[dim]Please try again later.[/dim]")
         raise typer.Exit(1)
 
-    console.print("[green]✓ Server erreichbar[/green]\n")
+    console.print("[green]✓ Server reachable[/green]\n")
 
     storage = BenchmarkStorage()
     system_info = get_system_info()
@@ -1300,24 +1300,24 @@ def upload(
             all_games_list = storage.get_all_games()
             matching = [g for g in all_games_list if game.lower() in str(g).lower()]
             if not matching:
-                console.print(f"[red]Kein Spiel gefunden: {game}[/red]")
+                console.print(f"[red]No game found: {game}[/red]")
                 raise typer.Exit(1)
             games_to_upload = matching
     else:
         # Show available games
         available = storage.get_all_games()
         if not available:
-            console.print("[yellow]Keine Benchmarks vorhanden.[/yellow]")
-            console.print("Erstelle zuerst Benchmarks mit: [cyan]lgb record <game>[/cyan]")
+            console.print("[yellow]No benchmarks available.[/yellow]")
+            console.print("Create benchmarks first with: [cyan]lgb record <game>[/cyan]")
             raise typer.Exit(0)
 
-        console.print("[bold]Verfügbare Benchmarks:[/bold]")
+        console.print("[bold]Available benchmarks:[/bold]")
         for i, game_id in enumerate(available, 1):
             resolutions = storage.get_all_resolutions(game_id)
-            res_str = ", ".join(resolutions.keys()) if resolutions else "keine"
+            res_str = ", ".join(resolutions.keys()) if resolutions else "none"
             console.print(f"  [{i}] {game_id} ({res_str})")
 
-        console.print(f"\n[dim]Nutze 'lgb upload <app_id>' oder 'lgb upload --all'[/dim]")
+        console.print(f"\n[dim]Use 'lgb upload <app_id>' or 'lgb upload --all'[/dim]")
         return
 
     # Upload each game
@@ -1329,7 +1329,7 @@ def upload(
 
         resolutions = storage.get_all_resolutions(game_id)
         if not resolutions:
-            console.print(f"  [yellow]Keine Daten für {game_id}[/yellow]")
+            console.print(f"  [yellow]No data for {game_id}[/yellow]")
             continue
 
         # Get game info for display name
@@ -1374,10 +1374,10 @@ def upload(
                 failed += 1
 
     # Summary
-    console.print(f"\n[bold]Zusammenfassung:[/bold]")
-    console.print(f"  Hochgeladen: [green]{uploaded}[/green]")
+    console.print(f"\n[bold]Summary:[/bold]")
+    console.print(f"  Uploaded: [green]{uploaded}[/green]")
     if failed:
-        console.print(f"  Fehlgeschlagen: [red]{failed}[/red]")
+        console.print(f"  Failed: [red]{failed}[/red]")
 
 
 @app.command()
@@ -1395,11 +1395,11 @@ def record_manual(
     ),
 ) -> None:
     """
-    Manueller Recording-Modus ohne Spiel-Auswahl.
+    Manual recording mode without game selection.
 
-    Konfiguriert MangoHud und wartet auf manuelle Aufnahmen.
-    Du startest dein Spiel selbst, drückst Shift+F2 für Aufnahmen.
-    Spielname und Auflösung werden nach jeder Aufnahme abgefragt.
+    Configures MangoHud and waits for manual recordings.
+    You start your game yourself, press Shift+F2 to record.
+    Game name and resolution are asked after each recording.
     """
     import time
     from linux_game_benchmark.mangohud.config_manager import MangoHudConfigManager
@@ -1409,19 +1409,19 @@ def record_manual(
     from linux_game_benchmark.system.hardware_info import get_system_info
 
     console.print(f"\n[bold cyan]╔══════════════════════════════════════════╗[/bold cyan]")
-    console.print(f"[bold cyan]║     MANUELLER RECORDING MODUS            ║[/bold cyan]")
+    console.print(f"[bold cyan]║     MANUAL RECORDING MODE                ║[/bold cyan]")
     console.print(f"[bold cyan]╚══════════════════════════════════════════╝[/bold cyan]\n")
 
     if duration > 0:
-        console.print("[bold yellow]Steuerung:[/bold yellow]")
-        console.print(f"  [bold]Shift+F2[/bold] → Aufnahme starten (läuft {duration}s)")
-        console.print(f"  [bold]Automatischer Stop[/bold] nach {duration} Sekunden")
-        console.print("  [bold]Ctrl+C[/bold] → Beenden\n")
+        console.print("[bold yellow]Controls:[/bold yellow]")
+        console.print(f"  [bold red]Shift+F2[/bold red] → Start recording (runs {duration}s)")
+        console.print(f"  [bold]Auto-stop[/bold] after {duration} seconds")
+        console.print("  [bold]Ctrl+C[/bold] → Exit\n")
     else:
-        console.print("[bold yellow]Steuerung:[/bold yellow]")
-        console.print("  [bold]Shift+F2[/bold] → Aufnahme STARTEN")
-        console.print("  [bold]Shift+F2[/bold] → Aufnahme STOPPEN")
-        console.print("  [bold]Ctrl+C[/bold] → Beenden\n")
+        console.print("[bold yellow]Controls:[/bold yellow]")
+        console.print("  [bold red]Shift+F2[/bold red] → START recording")
+        console.print("  [bold red]Shift+F2[/bold red] → STOP recording")
+        console.print("  [bold]Ctrl+C[/bold] → Exit\n")
 
     # Setup
     system_info = get_system_info()
@@ -1439,14 +1439,14 @@ def record_manual(
         log_duration=duration,
     )
 
-    console.print("[bold green]✓ MangoHud konfiguriert[/bold green]")
+    console.print("[bold green]✓ MangoHud configured[/bold green]")
     console.print(f"[dim]Output: {output_dir}[/dim]\n")
 
-    console.print("[bold yellow]Starte jetzt dein Spiel mit:[/bold yellow]")
+    console.print("[bold yellow]Start your game with:[/bold yellow]")
     console.print("  [cyan]mangohud %command%[/cyan]")
-    console.print("  oder für Steam: Launch Options → [cyan]MANGOHUD=1 %command%[/cyan]\n")
-    console.print("[bold]Drücke Shift+F2 im Spiel um Aufnahme zu starten...[/bold]")
-    console.print("[dim]Warte auf Aufnahmen...[/dim]\n")
+    console.print("  or for Steam: Launch Options → [cyan]MANGOHUD=1 %command%[/cyan]\n")
+    console.print("[bold]Press [bold red]Shift+F2[/bold red] in game to start recording...[/bold]")
+    console.print("[dim]Waiting for recordings...[/dim]\n")
 
     # Track processed logs
     processed_logs = set()
@@ -1474,7 +1474,7 @@ def record_manual(
         """Process a completed log file."""
         nonlocal recording_count
 
-        console.print(f"\n[bold green]═══ Aufnahme erkannt! ═══[/bold green]")
+        console.print(f"\n[bold green]═══ Recording detected! ═══[/bold green]")
 
         try:
             analyzer = FrametimeAnalyzer(log_path)
@@ -1486,7 +1486,7 @@ def record_manual(
             console.print(f"  AVG FPS: {fps.get('average', 0):.1f}")
             console.print(f"  1% Low: {fps.get('1_percent_low', 0):.1f}")
         except Exception as e:
-            console.print(f"[red]Analyse-Fehler: {e}[/red]")
+            console.print(f"[red]Analysis error: {e}[/red]")
             return True
 
         # Use GameFinder to find the game
@@ -1495,17 +1495,17 @@ def record_manual(
         finder = GameFinder(console=console)
         existing_games = storage.get_all_games()
 
-        console.print(f"\n[bold]Spielname?[/bold]")
+        console.print(f"\n[bold]Game name?[/bold]")
 
         if existing_games:
-            console.print("[dim]Vorhandene Spiele:[/dim]")
+            console.print("[dim]Existing games:[/dim]")
             for i, game in enumerate(existing_games, 1):
                 console.print(f"  [{i}] {game}")
-            console.print(f"  [0] Neues Spiel suchen")
+            console.print(f"  [0] Search for new game")
             console.print()
 
         try:
-            query = typer.prompt("Auswahl oder Name", default="0").strip()
+            query = typer.prompt("Choice or name", default="0").strip()
         except:
             return True
 
@@ -1516,12 +1516,12 @@ def record_manual(
             if 1 <= choice_idx <= len(existing_games):
                 # User selected existing game - search for it to get App ID
                 game_name = existing_games[choice_idx - 1]
-                console.print(f"[green]✓ Ausgewählt: {game_name}[/green]")
+                console.print(f"[green]✓ Selected: {game_name}[/green]")
                 game_info = finder.find(game_name, interactive=False)
             elif choice_idx == 0:
                 # User wants to enter new game name
                 try:
-                    new_name = typer.prompt("Spielname", default="").strip()
+                    new_name = typer.prompt("Game name", default="").strip()
                     if new_name:
                         game_info = finder.find(new_name, interactive=True)
                 except:
@@ -1536,8 +1536,8 @@ def record_manual(
             app_id = game_info.steam_app_id
             console.print(f"[green]✓ {game_name} (App ID: {app_id})[/green]")
         else:
-            console.print("[red]Kein Steam-Spiel gefunden![/red]")
-            console.print("[dim]Nur Steam-Spiele können gebenchmarkt werden.[/dim]")
+            console.print("[red]No Steam game found![/red]")
+            console.print("[dim]Only Steam games can be benchmarked.[/dim]")
             return True  # Skip this recording, but continue session
 
         # Track games for report generation with App ID
@@ -1551,21 +1551,21 @@ def record_manual(
         game_reports[game_name]["count"] += 1
 
         # Ask for resolution
-        console.print(f"\n[bold]Auflösung?[/bold]")
+        console.print(f"\n[bold]Resolution?[/bold]")
         console.print("  [1] FHD (1920×1080)")
         console.print("  [2] WQHD (2560×1440)")
         console.print("  [3] UHD (3840×2160)")
-        console.print("  [0] Verwerfen")
+        console.print("  [0] Discard")
 
         resolution_map = {"1": "1920x1080", "2": "2560x1440", "3": "3840x2160"}
 
         try:
-            choice = typer.prompt("Auswahl", default="1")
+            choice = typer.prompt("Choice", default="1")
         except:
             return True
 
         if choice == "0":
-            console.print("[yellow]Verworfen[/yellow]")
+            console.print("[yellow]Discarded[/yellow]")
             return True
 
         resolution = resolution_map.get(choice, "1920x1080")
@@ -1573,7 +1573,7 @@ def record_manual(
         # Check/save fingerprint for this game - use Steam App ID for storage
         fp = SystemFingerprint.from_system_info(system_info)
         if not storage.check_fingerprint(app_id, fp):
-            console.print("[yellow]Neue System-Config für dieses Spiel[/yellow]")
+            console.print("[yellow]New system config for this game[/yellow]")
             storage.archive_old_data(app_id)
         storage.save_fingerprint(app_id, fp, system_info)
 
@@ -1595,24 +1595,24 @@ def record_manual(
         )
         recording_count += 1
 
-        console.print(f"[green]✓ Gespeichert: {game_name} @ {resolution}[/green]")
-        console.print(f"[dim]Total: {recording_count} Aufnahme(n)[/dim]")
+        console.print(f"[green]✓ Saved: {game_name} @ {resolution}[/green]")
+        console.print(f"[dim]Total: {recording_count} recording(s)[/dim]")
 
         # Ask if user wants to continue
-        console.print(f"\n[bold]Was möchtest du tun?[/bold]")
-        console.print("  [1] Weiter aufnehmen (Shift+F2 für nächste)")
-        console.print("  [2] Beenden und Reports generieren")
+        console.print(f"\n[bold]What would you like to do?[/bold]")
+        console.print("  [1] Continue recording ([bold red]Shift+F2[/bold red] for next)")
+        console.print("  [2] Finish and generate reports")
 
         try:
-            continue_choice = typer.prompt("Auswahl", default="1")
+            continue_choice = typer.prompt("Choice", default="1")
         except:
             return True
 
         if continue_choice == "2":
-            console.print("[cyan]Recording wird beendet...[/cyan]")
+            console.print("[cyan]Finishing recording...[/cyan]")
             return False
 
-        console.print(f"\n[bold yellow]Bereit für nächste Aufnahme (Shift+F2)...[/bold yellow]")
+        console.print(f"\n[bold yellow]Ready for next recording ([bold red]Shift+F2[/bold red])...[/bold yellow]")
         return True
 
     try:
@@ -1631,14 +1631,14 @@ def record_manual(
             time.sleep(1.0)
 
     except KeyboardInterrupt:
-        console.print("\n[yellow]Abgebrochen[/yellow]")
+        console.print("\n[yellow]Cancelled[/yellow]")
     finally:
         # Restore MangoHud config
         mangohud_manager.restore_config()
 
     # Generate reports for all games
     if recording_count > 0:
-        console.print(f"\n[bold]Generiere Reports für {len(game_reports)} Spiel(e)...[/bold]")
+        console.print(f"\n[bold]Generating reports for {len(game_reports)} game(s)...[/bold]")
 
         for game_name, info in game_reports.items():
             console.print(f"\n[bold cyan]{game_name}[/bold cyan]")
@@ -1646,7 +1646,7 @@ def record_manual(
             # Use Steam App ID for storage operations
             steam_app_id = info.get("app_id")
             if not steam_app_id:
-                console.print("  [yellow]Übersprungen - keine Steam App ID[/yellow]")
+                console.print("  [yellow]Skipped - no Steam App ID[/yellow]")
                 continue
 
             all_res = storage.get_all_resolutions(steam_app_id)
@@ -1664,7 +1664,7 @@ def record_manual(
                 )
                 console.print(f"  [green]✓[/green] Report: {report_path}")
 
-    console.print(f"\n[bold]Session beendet - {recording_count} Aufnahme(n) gespeichert[/bold]")
+    console.print(f"\n[bold]Session ended - {recording_count} recording(s) saved[/bold]")
 
 
 if __name__ == "__main__":

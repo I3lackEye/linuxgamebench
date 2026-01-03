@@ -92,20 +92,20 @@ class SteamOpenIDHandler(BaseHTTPRequestHandler):
                 self._send_success_page()
             else:
                 SteamOpenIDHandler.error = "Invalid Steam ID format"
-                self._send_error_page("Ungültiges Steam ID Format")
+                self._send_error_page("Invalid Steam ID format")
         elif "openid.mode" in params and params["openid.mode"][0] == "cancel":
             SteamOpenIDHandler.error = "Login cancelled"
-            self._send_error_page("Login abgebrochen")
+            self._send_error_page("Login cancelled")
         else:
             SteamOpenIDHandler.error = "Invalid response"
-            self._send_error_page("Ungültige Antwort von Steam")
+            self._send_error_page("Invalid response from Steam")
 
     def _send_success_page(self):
         """Send success HTML page."""
         html = """<!DOCTYPE html>
 <html>
 <head>
-    <title>Login erfolgreich</title>
+    <title>Login successful</title>
     <style>
         body { font-family: sans-serif; text-align: center; padding: 50px; background: #1b2838; color: #fff; }
         .success { color: #66c0f4; font-size: 24px; }
@@ -113,8 +113,8 @@ class SteamOpenIDHandler(BaseHTTPRequestHandler):
     </style>
 </head>
 <body>
-    <div class="success">Login erfolgreich!</div>
-    <div class="info">Du kannst dieses Fenster jetzt schließen.</div>
+    <div class="success">Login successful!</div>
+    <div class="info">You can close this window now.</div>
 </body>
 </html>"""
         self.send_response(200)
@@ -127,7 +127,7 @@ class SteamOpenIDHandler(BaseHTTPRequestHandler):
         html = f"""<!DOCTYPE html>
 <html>
 <head>
-    <title>Login fehlgeschlagen</title>
+    <title>Login failed</title>
     <style>
         body {{ font-family: sans-serif; text-align: center; padding: 50px; background: #1b2838; color: #fff; }}
         .error {{ color: #ff6b6b; font-size: 24px; }}
@@ -135,7 +135,7 @@ class SteamOpenIDHandler(BaseHTTPRequestHandler):
     </style>
 </head>
 <body>
-    <div class="error">Login fehlgeschlagen</div>
+    <div class="error">Login failed</div>
     <div class="info">{message}</div>
 </body>
 </html>"""
@@ -162,7 +162,7 @@ class SteamAuth:
                 return port
             except OSError:
                 continue
-        raise RuntimeError("Kein freier Port gefunden")
+        raise RuntimeError("No free port found")
 
     def _build_openid_url(self, callback_url: str) -> str:
         """Build Steam OpenID login URL."""
@@ -203,18 +203,18 @@ class SteamAuth:
         # Build login URL and open browser
         login_url = self._build_openid_url(self.callback_url)
 
-        print(f"Öffne Steam Login im Browser...")
-        print(f"Falls der Browser nicht öffnet, besuche:")
+        print(f"Opening Steam Login in browser...")
+        print(f"If browser doesn't open, visit:")
         print(f"  {login_url[:80]}...")
 
         webbrowser.open(login_url)
 
         # Wait for callback
-        print("\nWarte auf Steam Login...")
+        print("\nWaiting for Steam Login...")
         try:
             self.server.handle_request()
         except Exception as e:
-            print(f"Fehler beim Warten auf Callback: {e}")
+            print(f"Error waiting for callback: {e}")
             return None
         finally:
             self.server.server_close()
@@ -228,7 +228,7 @@ class SteamAuth:
             return session
         else:
             if SteamOpenIDHandler.error:
-                print(f"Login fehlgeschlagen: {SteamOpenIDHandler.error}")
+                print(f"Login failed: {SteamOpenIDHandler.error}")
             return None
 
 

@@ -72,7 +72,7 @@ class BenchmarkAPIClient:
         if not is_logged_in():
             return UploadResult(
                 success=False,
-                error="Nicht eingeloggt. Bitte zuerst 'lgb login' ausführen."
+                error="Not logged in. Please run 'lgb login' first."
             )
 
         session = get_current_session()
@@ -100,7 +100,7 @@ class BenchmarkAPIClient:
             },
             "submitter": {
                 "steam_id": session.steam_id,
-                "steam_name": session.steam_name,
+                "steam_name": session.steam_name or "",  # Must be string, not None
             },
             "client_version": settings.CLIENT_VERSION,
         }
@@ -123,34 +123,34 @@ class BenchmarkAPIClient:
                 elif response.status_code == 401:
                     return UploadResult(
                         success=False,
-                        error="Authentifizierung fehlgeschlagen. Bitte erneut einloggen."
+                        error="Authentication failed. Please login again."
                     )
                 elif response.status_code == 429:
                     return UploadResult(
                         success=False,
-                        error="Rate Limit erreicht. Bitte später erneut versuchen."
+                        error="Rate limit reached. Please try again later."
                     )
                 else:
                     error_detail = response.json().get("detail", response.text)
                     return UploadResult(
                         success=False,
-                        error=f"Upload fehlgeschlagen ({response.status_code}): {error_detail}"
+                        error=f"Upload failed ({response.status_code}): {error_detail}"
                     )
 
         except httpx.ConnectError:
             return UploadResult(
                 success=False,
-                error=f"Verbindung zu {self.base_url} fehlgeschlagen. Server nicht erreichbar."
+                error=f"Connection to {self.base_url} failed. Server unreachable."
             )
         except httpx.TimeoutException:
             return UploadResult(
                 success=False,
-                error="Timeout beim Upload. Bitte erneut versuchen."
+                error="Upload timed out. Please try again."
             )
         except Exception as e:
             return UploadResult(
                 success=False,
-                error=f"Unerwarteter Fehler: {e}"
+                error=f"Unexpected error: {e}"
             )
 
     def get_game_benchmarks(self, steam_app_id: int) -> Dict[str, Any]:
