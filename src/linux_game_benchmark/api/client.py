@@ -56,6 +56,7 @@ class BenchmarkAPIClient:
         system_info: Dict[str, Any],
         metrics: Dict[str, Any],
         frametimes: Optional[list] = None,
+        comment: Optional[str] = None,
     ) -> UploadResult:
         """
         Upload a benchmark result to the server.
@@ -87,7 +88,7 @@ class BenchmarkAPIClient:
                 "cpu": system_info.get("cpu", "Unknown"),
                 "os": system_info.get("os", "Linux"),
                 "kernel": system_info.get("kernel"),
-                "mesa": system_info.get("mesa"),
+                "gpu_driver": system_info.get("gpu_driver"),
                 "vulkan": system_info.get("vulkan"),
                 "ram_gb": system_info.get("ram_gb"),
             },
@@ -105,6 +106,7 @@ class BenchmarkAPIClient:
             },
             "client_version": settings.CLIENT_VERSION,
             "frametimes": frametimes,
+            "comment": comment,
         }
 
         try:
@@ -205,6 +207,7 @@ def upload_benchmark(
     system_info: Dict[str, Any],
     metrics: Dict[str, Any],
     frametimes: Optional[list] = None,
+    comment: Optional[str] = None,
 ) -> UploadResult:
     """
     Upload a benchmark result.
@@ -219,6 +222,7 @@ def upload_benchmark(
         system_info=system_info,
         metrics=metrics,
         frametimes=frametimes,
+        comment=comment,
     )
 
 

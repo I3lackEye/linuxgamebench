@@ -651,6 +651,12 @@ def benchmark(
         console.print("[dim]Not uploaded.[/dim]")
         raise typer.Exit(0)
 
+    # Optional comment
+    try:
+        comment = typer.prompt("Comment (optional, press Enter to skip)", default="").strip()
+    except:
+        comment = ""
+
     # Check API and upload
     console.print("[dim]Connecting...[/dim]")
     if not check_api_status():
@@ -671,7 +677,7 @@ def benchmark(
             "cpu": system_info.get("cpu", {}).get("model", "Unknown"),
             "os": system_info.get("os", {}).get("name", "Linux"),
             "kernel": system_info.get("os", {}).get("kernel"),
-            "mesa": system_info.get("gpu", {}).get("driver_version"),
+            "gpu_driver": system_info.get("gpu", {}).get("driver_version"),
             "vulkan": system_info.get("gpu", {}).get("vulkan_version"),
             "ram_gb": int(system_info.get("ram", {}).get("total_gb", 0)),
         },
@@ -684,6 +690,7 @@ def benchmark(
             "consistency_rating": consistency_rating,
         },
         frametimes=frametimes,
+        comment=comment if comment else None,
     )
 
     if result.success:
