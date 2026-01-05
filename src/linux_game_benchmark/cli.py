@@ -69,17 +69,6 @@ def _short_cpu(name: str) -> str:
     return name[:30] if len(name) > 30 else name
 
 
-def _format_resolution(res: str) -> str:
-    """Convert resolution to standard format."""
-    mapping = {
-        '3840x2160': 'UHD',
-        '3440x1440': 'UWQHD',
-        '2560x1440': 'WQHD',
-        '1920x1080': 'FHD',
-        '1280x720': 'HD',
-    }
-    return mapping.get(res, res)
-
 app = typer.Typer(
     name="lgb",
     help="Linux Game Benchmark - Automated gaming benchmark tool",
@@ -604,7 +593,7 @@ def benchmark(
                     result = upload_benchmark(
                         steam_app_id=steam_app_id,
                         game_name=target_game["name"],
-                        resolution=_format_resolution(selected_resolution),
+                        resolution=selected_resolution,
                         system_info={
                             "gpu": _short_gpu(system_info.get("gpu", {}).get("model")),
                             "cpu": _short_cpu(system_info.get("cpu", {}).get("model")),
@@ -1175,7 +1164,7 @@ def upload(
             result = upload_benchmark(
                 steam_app_id=game_id,
                 game_name=game_name,
-                resolution=_format_resolution(resolution),
+                resolution=resolution,
                 system_info={
                     "gpu": _short_gpu(system_info.get("gpu", {}).get("model")),
                     "cpu": _short_cpu(system_info.get("cpu", {}).get("model")),
