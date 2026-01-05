@@ -198,6 +198,24 @@ class BenchmarkAPIClient:
         except Exception:
             return False
 
+    def check_for_updates(self) -> Optional[str]:
+        """
+        Check if a newer client version is available.
+
+        Returns:
+            New version string if available, None otherwise.
+        """
+        try:
+            with httpx.Client(timeout=3.0) as client:
+                response = client.get(f"{self.base_url}/version")
+                if response.status_code == 200:
+                    latest = response.json().get("version")
+                    if latest and latest != settings.CLIENT_VERSION:
+                        return latest
+        except Exception:
+            pass  # Silently fail - don't block user
+        return None
+
 
 # Convenience functions
 def upload_benchmark(
@@ -230,3 +248,9 @@ def check_api_status() -> bool:
     """Check if the API is reachable."""
     client = BenchmarkAPIClient()
     return client.health_check()
+
+
+def check_for_updates() -> Optional[str]:
+    """Check if a newer client version is available."""
+    client = BenchmarkAPIClient()
+    return client.check_for_updates()

@@ -112,7 +112,18 @@ def main(
 
     Measures FPS, stutter, frame pacing and more for Steam games.
     """
-    pass
+    # Check for updates
+    try:
+        from linux_game_benchmark.api.client import check_for_updates
+        new_version = check_for_updates()
+        if new_version:
+            console.print(
+                f"[yellow]Update available: v{new_version}[/yellow] "
+                f"[dim](current: v{__version__})[/dim]"
+            )
+            console.print("[dim]Run: pipx upgrade linux-game-benchmark[/dim]\n")
+    except Exception:
+        pass  # Silently ignore update check failures
 
 
 @app.command()
