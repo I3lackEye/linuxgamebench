@@ -139,7 +139,6 @@ xdg-open ~/benchmark_results/index.html
 | `lgb scan` | Scan Steam library |
 | `lgb info` | Show system information |
 | `lgb benchmark [game]` | Launch game and benchmark |
-| `lgb record [game]` | Launch game and record |
 | `lgb analyze [log]` | Analyze MangoHud log |
 | `lgb report` | Regenerate HTML reports |
 | `lgb upload` | Upload benchmarks to community database |
