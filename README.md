@@ -210,6 +210,10 @@ lgb upload
 
 > **Note:** User profiles and "My Benchmarks" are planned for a future release.
 
+## Known Issues
+
+- **Laptop/Notebook GPU detection**: On systems with both integrated and dedicated GPUs, the tool may detect the wrong graphics card. Workaround: Disable the integrated GPU in BIOS settings.
+
 ## License
 
 GPL-3.0 License
