@@ -93,7 +93,7 @@ lgb record-manual
 **How record_manual works:**
 1. lgb configures MangoHud and waits
 2. Start your game with `MANGOHUD=1 %command%` in Steam launch options
-3. Press **Shift+F2** in-game to start recording (60 seconds)
+3. Press **Shift+F2** in-game to start/stop recording
 4. Return to terminal: enter game name and resolution
 5. Repeat for more recordings or exit
 

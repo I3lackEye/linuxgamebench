@@ -844,7 +844,7 @@ def record(
         help="Show MangoHud overlay",
     ),
     duration: int = typer.Option(
-        60,
+        0,
         "--duration",
         "-d",
         help="Recording duration in seconds (0 = manual stop with Shift+F2)",
@@ -854,8 +854,7 @@ def record(
     Interactive multi-recording mode.
 
     Starts the game once and allows multiple recordings:
-    - Shift+F2: Start recording
-    - After 60s (or --duration): Recording stops automatically
+    - Shift+F2: Start/stop recording (or use --duration for auto-stop)
     - Select resolution → save
     - Repeat for more recordings
     - Close game when finished
@@ -1331,7 +1330,7 @@ def record_manual(
         help="Show MangoHud overlay",
     ),
     duration: int = typer.Option(
-        60,
+        0,
         "--duration",
         "-d",
         help="Recording duration in seconds (0 = manual stop with Shift+F2)",
