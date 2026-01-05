@@ -126,7 +126,7 @@ def main(
                 console.print("[dim]Updating...[/dim]")
                 subprocess.run(["pipx", "uninstall", "linux-game-benchmark"], check=True)
                 subprocess.run(["pipx", "install", "git+https://github.com/taaderbe/linuxgamebench.git"], check=True)
-                console.print("[green]Update complete! Please restart lgb.[/green]")
+                console.print("[green]Update complete![/green]")
                 raise typer.Exit()
             console.print()
     except typer.Exit:
