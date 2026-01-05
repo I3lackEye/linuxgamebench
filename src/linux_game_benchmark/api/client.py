@@ -6,9 +6,22 @@ Handles benchmark uploads and API communication.
 
 import httpx
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 
 from linux_game_benchmark.config.settings import settings
+
+
+def _parse_version(version: str) -> Tuple[int, ...]:
+    """Parse version string to tuple for comparison. E.g., '0.1.14' -> (0, 1, 14)"""
+    try:
+        return tuple(int(x) for x in version.split("."))
+    except (ValueError, AttributeError):
+        return (0, 0, 0)
+
+
+def _is_newer_version(server_version: str, client_version: str) -> bool:
+    """Check if server version is newer than client version."""
+    return _parse_version(server_version) > _parse_version(client_version)
 
 
 @dataclass
@@ -191,7 +204,7 @@ class BenchmarkAPIClient:
                 response = client.get(f"{self.base_url}/version")
                 if response.status_code == 200:
                     latest = response.json().get("version")
-                    if latest and latest != settings.CLIENT_VERSION:
+                    if latest and _is_newer_version(latest, settings.CLIENT_VERSION):
                         return latest
         except Exception:
             pass  # Silently fail - don't block user

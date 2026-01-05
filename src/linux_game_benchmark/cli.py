@@ -122,7 +122,7 @@ def main(
                 f"[yellow]Update available: v{new_version}[/yellow] "
                 f"[dim](current: v{__version__})[/dim]"
             )
-            if typer.confirm("Do you want to update now?", default=False):
+            if typer.confirm("Do you want to update now?", default=True):
                 console.print("[dim]Updating...[/dim]")
                 subprocess.run(["pipx", "uninstall", "linux-game-benchmark"], check=True)
                 subprocess.run(["pipx", "install", "git+https://github.com/taaderbe/linuxgamebench.git"], check=True)
