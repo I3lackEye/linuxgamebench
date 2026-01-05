@@ -377,7 +377,7 @@ class BenchmarkRunner:
             return result
 
         self._log("Game launch initiated.")
-        self._log("Start the game, then press Shift+F2 to begin recording.")
+        self._log("Once the game is running, press Shift+F2 to start recording (red dot = recording).")
 
         # Wait for log file to be created and completed
         log_path = self._wait_for_log_completion(output_dir, timeout=1800.0)

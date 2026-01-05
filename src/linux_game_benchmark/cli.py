@@ -677,8 +677,8 @@ def benchmark(
             raise typer.Exit(1)
 
         console.print(f"[green]Game launch initiated![/green]")
-        console.print(f"\n[bold yellow]Start the game, then press [bold red]Shift+F2[/bold red] to start recording...[/bold yellow]")
-        console.print(f"[dim]Press Ctrl+C to end the session[/dim]\n")
+        console.print(f"\n[bold yellow]Once the game is running, press [bold red]Shift+F2[/bold red] to start recording[/bold yellow]")
+        console.print(f"[dim]Red dot in overlay = recording. Press Shift+F2 again to stop.[/dim]\n")
 
         # Monitor for recordings (no PID check - user ends session manually)
         session_active = True
@@ -1032,8 +1032,8 @@ def record(
             raise typer.Exit(1)
 
         console.print(f"[green]Game launch initiated![/green]")
-        console.print(f"\n[bold yellow]Start the game, then press [bold red]Shift+F2[/bold red] to start recording...[/bold yellow]")
-        console.print(f"[dim]Press Ctrl+C to end the session[/dim]\n")
+        console.print(f"\n[bold yellow]Once the game is running, press [bold red]Shift+F2[/bold red] to start recording[/bold yellow]")
+        console.print(f"[dim]Red dot in overlay = recording. Press Shift+F2 again to stop.[/dim]\n")
 
         # Manual stop flag
         user_requested_stop = False
@@ -1368,7 +1368,7 @@ def record_manual(
     console.print("[bold yellow]Start your game with:[/bold yellow]")
     console.print("  [cyan]mangohud %command%[/cyan]")
     console.print("  or for Steam: Launch Options → [cyan]MANGOHUD=1 %command%[/cyan]\n")
-    console.print("[bold]Press [bold red]Shift+F2[/bold red] in game to start recording...[/bold]")
+    console.print("[bold]Press [bold red]Shift+F2[/bold red] in game to start recording (red dot = recording)[/bold]")
     console.print("[dim]Waiting for recordings...[/dim]\n")
 
     # Track processed logs
