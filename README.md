@@ -8,10 +8,11 @@ Measures FPS, stutter, frame pacing and more using MangoHud.
 - Automatic Steam game detection
 - MangoHud integration for frametimes
 - Detailed metrics (AVG FPS, 1% Low, 0.1% Low, Stutter)
-- Multi-resolution support (FHD, WQHD, UHD)
+- Multi-resolution support (HD, FHD, WQHD, UWQHD, UHD)
 - Beautiful HTML reports with interactive charts
 - Multi-system comparison (compare different GPUs/CPUs)
-- Upload to community database
+- Upload to community database at [linuxgamebench.com](https://linuxgamebench.com)
+- Automatic update notifications
 
 ## Requirements
 
@@ -164,6 +165,8 @@ echo "MANGOHUD=1" >> ~/.config/environment.d/mangohud.conf
 ```
 
 ## Upload Results
+
+Share your benchmarks at **[linuxgamebench.com](https://linuxgamebench.com)** and compare your hardware with the community!
 
 ```bash
 # Link Steam account
