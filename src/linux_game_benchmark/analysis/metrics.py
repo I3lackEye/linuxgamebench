@@ -606,6 +606,20 @@ class FrametimeAnalyzer:
         # Calculate how much FPS drops at 1% low
         fps_drop_percent = ((avg_fps - low_1_fps) / avg_fps * 100) if avg_fps > 0 else 0
 
+        # FPS-Cap Detection: Games locked at common refresh rates get fairer ratings
+        # When AVG is very close to a cap AND 1% low is stable, the rating should be better
+        common_caps = [30, 60, 120, 144, 165, 240]
+        is_likely_capped = any(abs(avg_fps - cap) < 2 for cap in common_caps)
+
+        if is_likely_capped and fps_drop_percent < 15:
+            # Capped games with stable 1% low get at least "Good"
+            if low_1_fps >= 55:  # ~60 FPS cap with stable lows
+                return "Good"
+            elif low_1_fps >= 110:  # ~120 FPS cap with stable lows
+                return "Good"
+            elif low_1_fps >= 27:  # ~30 FPS cap with stable lows
+                return "Moderate"
+
         # High FPS range (1% low >= 120): Drops matter less due to high absolute values
         if low_1_fps >= 120:
             if cv < 15 and fps_drop_percent < 40:
