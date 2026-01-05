@@ -80,24 +80,65 @@ This will:
 ### 2. List Steam Games
 
 ```bash
+# Scan and show all installed Steam games
 lgb list-games
+
+# Refresh game list (after installing new games)
+lgb scan
+
+# Filter: only games with builtin benchmarks
+lgb list-games --with-benchmark
+
+# Filter: only Proton/Windows games
+lgb list-games --proton
+
+# Filter: only native Linux games
+lgb list-games --native
 ```
 
-### 3. Start Benchmark
+Example output:
+```
+┏━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━┓
+┃ App ID   ┃ Name                        ┃ Type    ┃ Benchmark ┃
+┡━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━┩
+│ 1245620  │ Elden Ring                  │ Proton  │ -         │
+│ 1174180  │ Red Dead Redemption 2       │ Proton  │ Yes       │
+│ 427520   │ Factorio                    │ Native  │ -         │
+└──────────┴─────────────────────────────┴─────────┴───────────┘
+```
+
+### 3. Start a Game Benchmark
+
+```bash
+# By game name
+lgb benchmark "Elden Ring"
+
+# By Steam App ID
+lgb benchmark 1245620
+
+# With auto-stop after 60 seconds
+lgb benchmark "Factorio" --duration 60
+```
+
+### 4. Manual Recording (Recommended)
 
 ```bash
 # Interactive mode (recommended)
 lgb record-manual
+
+# With auto-stop after 90 seconds
+lgb record-manual --duration 90
 ```
 
 **How record_manual works:**
 1. lgb configures MangoHud and waits
 2. Start your game with `MANGOHUD=1 %command%` in Steam launch options
-3. Press **Shift+F2** in-game to start/stop recording
-4. Return to terminal: enter game name and resolution
-5. Repeat for more recordings or exit
+3. Press **Shift+F2** in-game to start recording
+4. Press **Shift+F2** again to stop (or wait for --duration)
+5. Return to terminal: enter game name and resolution
+6. Repeat for more recordings or exit
 
-### 4. View Report
+### 5. View Report
 
 ```bash
 xdg-open ~/benchmark_results/index.html
@@ -169,16 +210,22 @@ echo "MANGOHUD=1" >> ~/.config/environment.d/mangohud.conf
 Share your benchmarks at **[linuxgamebench.com](https://linuxgamebench.com)** and compare your hardware with the community!
 
 ```bash
-# Link Steam account
+# Link Steam account (required for upload)
 lgb login
 
-# Benchmark will prompt for upload
-lgb record "Cyberpunk 2077"
+# Check login status
+lgb status
+
+# Benchmark will prompt for upload after recording
+lgb benchmark "Cyberpunk 2077"
 # → "Upload to community database? [Y/n]"
 
 # Or upload existing benchmarks
 lgb upload
 ```
+
+> **Note:** Steam login is currently only used for uploading benchmarks.
+> User profiles and "My Benchmarks" features are planned for a future release.
 
 ## License
 
