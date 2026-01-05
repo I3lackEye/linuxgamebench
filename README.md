@@ -47,6 +47,19 @@ sudo apt install mangohud pipx
 pipx install git+https://github.com/taaderbe/linuxgamebench.git
 ```
 
+### Fedora
+
+```bash
+# Install MangoHud and optional tools
+sudo dnf install mangohud gamemode gamescope
+
+# Install pipx
+sudo dnf install pipx
+
+# Install the tool
+pipx install git+https://github.com/taaderbe/linuxgamebench.git
+```
+
 ### Update to Latest Version
 
 ```bash
