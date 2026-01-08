@@ -29,7 +29,7 @@ class Settings:
     }
 
     # Client version
-    CLIENT_VERSION = "0.1.22"
+    CLIENT_VERSION = "0.1.23"
 
     def _load_config(self) -> dict:
         """Load config from file."""
