@@ -817,10 +817,17 @@ def benchmark(
         last_size = 0
         stable_count = 0
         MIN_DURATION = BenchmarkValidator.MIN_DURATION_SECONDS  # 30
+        MAX_DURATION = 300  # 5 minutes max
+        max_reached = False
 
         with Live(console=console, refresh_per_second=4, transient=True) as live:
             while stable_count < 1:  # Exit after first stable check
                 elapsed = time.time() - start_time
+
+                # Check max duration
+                if elapsed >= MAX_DURATION:
+                    max_reached = True
+                    break
 
                 # Format timer
                 if elapsed < 60:
@@ -866,7 +873,11 @@ def benchmark(
             mins = int(elapsed // 60)
             secs = int(elapsed % 60)
             timer_text = f"{mins}m {secs}sec"
-        console.print(f"[bold cyan]■ Recording stopped[/bold cyan] ({timer_text})")
+
+        if max_reached:
+            console.print(f"[bold yellow]■ Recording stopped[/bold yellow] ({timer_text}) [yellow]- 5 min max reached[/yellow]")
+        else:
+            console.print(f"[bold cyan]■ Recording stopped[/bold cyan] ({timer_text})")
 
     def process_recording(log_path: Path) -> bool:
         """Process a recording. Returns False if user wants to end session."""
