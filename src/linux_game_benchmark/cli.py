@@ -672,10 +672,10 @@ def benchmark(
         help="Show MangoHud overlay during benchmark",
     ),
     duration: int = typer.Option(
-        0,
+        300,
         "--duration",
         "-d",
-        help="Recording duration in seconds (0 = manual stop with Shift+F2)",
+        help="Recording duration in seconds (max 300 = 5 min)",
     ),
 ) -> None:
     """
@@ -746,13 +746,19 @@ def benchmark(
 
     steam_app_id = target_game["app_id"]
 
-    # Configure MangoHud for manual logging (no duration limit)
+    # Cap duration at 5 min max (server limit)
+    MAX_DURATION = 300
+    if duration > MAX_DURATION:
+        console.print(f"[yellow]Duration capped at {MAX_DURATION}s (5 min max)[/yellow]")
+        duration = MAX_DURATION
+
+    # Configure MangoHud for manual logging with auto-stop
     mangohud_manager.backup_config()
     mangohud_manager.set_benchmark_config(
         output_folder=output_dir,
         show_hud=show_hud,
         manual_logging=True,
-        log_duration=0,  # No auto-stop
+        log_duration=duration,  # Auto-stop after duration
     )
 
     # Set Steam launch options
@@ -1025,7 +1031,64 @@ def benchmark(
                         if result.url:
                             console.print(f"  {result.url}")
                     else:
-                        console.print(f"[red]Upload failed: {result.error}[/red]")
+                        # Check if auth error - offer to login and retry
+                        auth_errors = ["session expired", "authentication", "login again", "401"]
+                        is_auth_error = any(e in (result.error or "").lower() for e in auth_errors)
+
+                        if is_auth_error:
+                            console.print(f"[yellow]Session expired or not logged in.[/yellow]")
+                            from linux_game_benchmark.api.auth import login_interactive
+
+                            # Login retry loop
+                            logged_in = False
+                            while True:
+                                login_choice = typer.prompt("Try login? [Y/n]", default="y").strip().lower()
+                                if login_choice not in ["y", "yes", "j", "ja", ""]:
+                                    console.print("[dim]Upload skipped.[/dim]")
+                                    break
+                                if login_interactive(console):
+                                    logged_in = True
+                                    break
+                                # Login failed - ask to retry
+                                console.print("[yellow]Login failed.[/yellow]")
+
+                            if logged_in:
+                                # Retry upload after successful login
+                                console.print("[dim]Retrying upload...[/dim]")
+                                result = upload_benchmark(
+                                    steam_app_id=steam_app_id,
+                                    game_name=target_game["name"],
+                                    resolution=_normalize_resolution(selected_resolution),
+                                    system_info={
+                                        "gpu": _short_gpu(system_info.get("gpu", {}).get("model")),
+                                        "cpu": _short_cpu(system_info.get("cpu", {}).get("model")),
+                                        "os": system_info.get("os", {}).get("name", "Linux"),
+                                        "kernel": _short_kernel(system_info.get("os", {}).get("kernel")),
+                                        "gpu_driver": system_info.get("gpu", {}).get("driver_version"),
+                                        "vulkan": system_info.get("gpu", {}).get("vulkan_version"),
+                                        "ram_gb": int(system_info.get("ram", {}).get("total_gb", 0)),
+                                    },
+                                    metrics={
+                                        "fps_avg": fps.get('average', 0),
+                                        "fps_min": fps.get('minimum', 0),
+                                        "fps_1low": fps.get('1_percent_low', 0),
+                                        "fps_01low": fps.get('0.1_percent_low', 0),
+                                        "stutter_rating": stutter_rating,
+                                        "consistency_rating": consistency_rating,
+                                        "duration_seconds": fps.get('duration_seconds', 0),
+                                        "frame_count": fps.get('frame_count', 0),
+                                    },
+                                    frametimes=frametimes,
+                                    comment=comment if comment else None,
+                                )
+                                if result.success:
+                                    console.print(f"[bold green]✓ Uploaded![/bold green]")
+                                    if result.url:
+                                        console.print(f"  {result.url}")
+                                else:
+                                    console.print(f"[red]Upload failed: {result.error}[/red]")
+                        else:
+                            console.print(f"[red]Upload failed: {result.error}[/red]")
                 else:
                     console.print("[red]Server unreachable. Please try again later.[/red]")
             else:
