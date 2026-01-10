@@ -998,34 +998,48 @@ def benchmark(
                     console.print("[dim]Register: https://linuxgamebench.com/register.html[/dim]")
 
                 # Upload (works with or without login)
-                console.print("[dim]Uploading...[/dim]")
                 if check_api_status():
-                    result = upload_benchmark(
-                        steam_app_id=steam_app_id,
-                        game_name=target_game["name"],
-                        resolution=_normalize_resolution(selected_resolution),
-                        system_info={
-                            "gpu": _short_gpu(system_info.get("gpu", {}).get("model")),
-                            "cpu": _short_cpu(system_info.get("cpu", {}).get("model")),
-                            "os": system_info.get("os", {}).get("name", "Linux"),
-                            "kernel": _short_kernel(system_info.get("os", {}).get("kernel")),
-                            "gpu_driver": system_info.get("gpu", {}).get("driver_version"),
-                            "vulkan": system_info.get("gpu", {}).get("vulkan_version"),
-                            "ram_gb": int(system_info.get("ram", {}).get("total_gb", 0)),
-                        },
-                        metrics={
-                            "fps_avg": fps.get('average', 0),
-                            "fps_min": fps.get('minimum', 0),
-                            "fps_1low": fps.get('1_percent_low', 0),
-                            "fps_01low": fps.get('0.1_percent_low', 0),
-                            "stutter_rating": stutter_rating,
-                            "consistency_rating": consistency_rating,
-                            "duration_seconds": fps.get('duration_seconds', 0),
-                            "frame_count": fps.get('frame_count', 0),
-                        },
-                        frametimes=frametimes,
-                        comment=comment if comment else None,
-                    )
+                    # Calculate payload size for user feedback
+                    import json as json_module
+                    payload_data = {
+                        "steam_app_id": steam_app_id,
+                        "game_name": target_game["name"],
+                        "resolution": _normalize_resolution(selected_resolution),
+                        "frametimes": frametimes,
+                    }
+                    payload_size = len(json_module.dumps(payload_data))
+                    size_kb = payload_size / 1024
+                    size_str = f"{size_kb:.0f} KB" if size_kb < 1024 else f"{size_kb/1024:.1f} MB"
+
+                    # Upload with spinner
+                    from rich.status import Status
+                    with Status(f"[bold green]Uploading {size_str}...[/bold green]", console=console) as status:
+                        result = upload_benchmark(
+                            steam_app_id=steam_app_id,
+                            game_name=target_game["name"],
+                            resolution=_normalize_resolution(selected_resolution),
+                            system_info={
+                                "gpu": _short_gpu(system_info.get("gpu", {}).get("model")),
+                                "cpu": _short_cpu(system_info.get("cpu", {}).get("model")),
+                                "os": system_info.get("os", {}).get("name", "Linux"),
+                                "kernel": _short_kernel(system_info.get("os", {}).get("kernel")),
+                                "gpu_driver": system_info.get("gpu", {}).get("driver_version"),
+                                "vulkan": system_info.get("gpu", {}).get("vulkan_version"),
+                                "ram_gb": int(system_info.get("ram", {}).get("total_gb", 0)),
+                            },
+                            metrics={
+                                "fps_avg": fps.get('average', 0),
+                                "fps_min": fps.get('minimum', 0),
+                                "fps_1low": fps.get('1_percent_low', 0),
+                                "fps_01low": fps.get('0.1_percent_low', 0),
+                                "stutter_rating": stutter_rating,
+                                "consistency_rating": consistency_rating,
+                                "duration_seconds": fps.get('duration_seconds', 0),
+                                "frame_count": fps.get('frame_count', 0),
+                            },
+                            frametimes=frametimes,
+                            comment=comment if comment else None,
+                        )
                     if result.success:
                         console.print(f"[bold green]✓ Uploaded![/bold green]")
                         if result.url:
@@ -1037,7 +1051,7 @@ def benchmark(
 
                         if is_auth_error:
                             console.print(f"[yellow]Session expired or not logged in.[/yellow]")
-                            from linux_game_benchmark.api.auth import login_interactive
+                            from linux_game_benchmark.api.auth import login as auth_login
 
                             # Login retry loop
                             logged_in = False
@@ -1046,11 +1060,17 @@ def benchmark(
                                 if login_choice not in ["y", "yes", "j", "ja", ""]:
                                     console.print("[dim]Upload skipped.[/dim]")
                                     break
-                                if login_interactive(console):
+                                # Prompt for credentials
+                                email = typer.prompt("Email")
+                                password = typer.prompt("Password", hide_input=True)
+                                console.print("[dim]Logging in...[/dim]")
+                                success, msg = auth_login(email, password)
+                                if success:
+                                    console.print(f"[green]{msg}[/green]")
                                     logged_in = True
                                     break
                                 # Login failed - ask to retry
-                                console.print("[yellow]Login failed.[/yellow]")
+                                console.print(f"[yellow]{msg}[/yellow]")
 
                             if logged_in:
                                 # Retry upload after successful login
