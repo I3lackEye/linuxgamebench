@@ -161,6 +161,7 @@ xdg-open ~/benchmark_results/index.html
 | `lgb benchmark [game]` | Launch game and benchmark |
 | `lgb analyze [log]` | Analyze MangoHud log |
 | `lgb report` | Regenerate HTML reports |
+| `lgb settings` | Configure defaults (resolution, upload, etc.) |
 | `lgb login` | Login to your account |
 | `lgb logout` | Logout from your account |
 | `lgb status` | Show login status and account info |
