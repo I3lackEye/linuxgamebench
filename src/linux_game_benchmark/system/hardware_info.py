@@ -72,6 +72,132 @@ def get_os_info() -> dict:
     return info
 
 
+def _is_dgpu(vendor: str, model: str) -> bool:
+    """
+    Classify GPU as discrete (dGPU) or integrated (iGPU).
+
+    Returns:
+        True if discrete GPU, False if integrated GPU.
+    """
+    model_lower = model.lower()
+    vendor_lower = vendor.lower()
+
+    # Intel = always iGPU (no discrete Intel GPUs in gaming laptops)
+    if "intel" in vendor_lower:
+        # Exception: Intel Arc is discrete
+        if "arc" in model_lower:
+            return True
+        return False
+
+    # NVIDIA = always dGPU
+    if "nvidia" in vendor_lower:
+        return True
+
+    # AMD: APU vs dGPU
+    if "amd" in vendor_lower or "radeon" in model_lower:
+        # iGPU patterns (APU integrated graphics)
+        igpu_patterns = [
+            "raphael", "rembrandt", "cezanne", "renoir", "picasso", "raven",
+            "vega 8", "vega 7", "vega 6", "vega 11", "vega 10", "vega 3",
+            "780m", "760m", "680m", "660m", "610m",  # RDNA3 APU
+            "graphics", "radeon graphics",  # Generic APU naming
+        ]
+        if any(p in model_lower for p in igpu_patterns):
+            return False
+        # RX series = always discrete
+        if "rx " in model_lower or "rx-" in model_lower:
+            return True
+        # Default to discrete for AMD Radeon
+        return True
+
+    # Unknown vendor - default to discrete
+    return True
+
+
+def detect_all_gpus() -> list[dict]:
+    """
+    Detect all GPUs in the system with PCI addresses.
+
+    Returns:
+        List of GPU dicts with keys:
+        - pci_address: PCI address (e.g., "0000:01:00.0")
+        - vendor: GPU vendor (NVIDIA, AMD, Intel)
+        - model: GPU model name
+        - is_dgpu: True if discrete GPU, False if integrated
+        - display_name: Human-readable name with (iGPU)/(dGPU) suffix
+    """
+    gpus = []
+
+    try:
+        result = subprocess.run(
+            ["lspci", "-D"],
+            capture_output=True,
+            text=True,
+        )
+
+        for line in result.stdout.split("\n"):
+            if "VGA" not in line and "3D controller" not in line:
+                continue
+
+            # Parse PCI address (first field)
+            parts = line.split(" ", 1)
+            if len(parts) < 2:
+                continue
+
+            pci_address = parts[0]
+            description = parts[1]
+
+            vendor = "Unknown"
+            model = "Unknown"
+
+            if "NVIDIA" in description:
+                vendor = "NVIDIA"
+                match = re.search(r"NVIDIA.*\[(.+)\]", description)
+                if match:
+                    model = match.group(1)
+                else:
+                    model = "NVIDIA GPU"
+            elif "AMD" in description or "ATI" in description:
+                vendor = "AMD"
+                # AMD format: "Advanced Micro Devices, Inc. [AMD/ATI] Navi 31 [Radeon RX 7900 XTX]"
+                # We want the part in brackets after [AMD/ATI]
+                match = re.search(r"\[AMD/ATI\]\s*([^\[]+)\s*\[([^\]]+)\]", description)
+                if match:
+                    # Get the model from second brackets (e.g., "Radeon RX 7900 XTX")
+                    model = match.group(2).strip()
+                else:
+                    # Fallback: try to find Radeon pattern
+                    match = re.search(r"(Radeon[^]]+)", description)
+                    if match:
+                        model = match.group(1).strip()
+                    else:
+                        model = "AMD GPU"
+            elif "Intel" in description:
+                vendor = "Intel"
+                match = re.search(r"Intel Corporation (.+?)(?:\s*\(rev|\s*$)", description)
+                if match:
+                    model = match.group(1).strip()
+                else:
+                    model = "Intel GPU"
+
+            is_dgpu = _is_dgpu(vendor, model)
+            suffix = "dGPU" if is_dgpu else "iGPU"
+            display_name = f"{vendor} {model} ({suffix})"
+
+            gpus.append({
+                "pci_address": pci_address,
+                "vendor": vendor,
+                "model": model,
+                "is_dgpu": is_dgpu,
+                "display_name": display_name,
+            })
+
+    except Exception:
+        pass
+
+    return gpus
+
+
 def get_gpu_info() -> dict:
     """Get GPU information."""
     info = {

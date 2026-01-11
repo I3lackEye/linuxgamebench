@@ -9,6 +9,7 @@ Measures FPS, stutter, frame pacing and more using MangoHud.
 - MangoHud integration for frametimes
 - Detailed metrics (AVG FPS, 1% Low, 0.1% Low, Stutter)
 - Multi-resolution support (HD, FHD, WQHD, UWQHD, UHD)
+- **Multi-GPU support** (laptops with iGPU + dGPU)
 - Beautiful HTML reports with interactive charts
 - Multi-system comparison (compare different GPUs/CPUs)
 - Upload to community database at [linuxgamebench.com](https://linuxgamebench.com)
@@ -224,9 +225,24 @@ lgb benchmark CS2  # Run benchmark - uploads automatically
 lgb login          # Login to your account
 ```
 
-## Known Issues
+## Multi-GPU Systems
 
-- **Laptop/Notebook GPU detection**: On systems with both integrated and dedicated GPUs, the tool may detect the wrong graphics card. Workaround: Disable the integrated GPU in BIOS settings.
+On laptops and desktops with multiple GPUs (e.g., Intel iGPU + NVIDIA dGPU), the tool automatically detects all graphics cards and asks which one was used for the benchmark:
+
+```
+Multiple GPUs detected:
+  ● [1] NVIDIA GeForce RTX 4060 (dGPU)
+  ○ [2] Intel UHD Graphics 770 (iGPU)
+
+Which GPU was used? [1-2]: 1
+Remember for future benchmarks? [y/N]: y
+```
+
+**Features:**
+- Automatic detection via MangoHud log (intelligent default)
+- Manual confirmation for accuracy
+- Save preference for future benchmarks
+- Reset via `lgb settings`
 
 ## License
 

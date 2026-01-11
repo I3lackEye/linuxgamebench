@@ -153,6 +153,38 @@ class FrametimeAnalyzer:
                 return key
         return None
 
+    @property
+    def log_system_info(self) -> dict:
+        """
+        Extract system info from MangoHud log header.
+
+        MangoHud logs include a SYSTEM INFO section with OS, CPU, GPU, etc.
+        This is useful for multi-GPU systems to identify which GPU was used.
+
+        Returns:
+            Dict with keys: os, cpu, gpu, kernel (None if not found)
+        """
+        info = {"os": None, "cpu": None, "gpu": None, "kernel": None}
+
+        try:
+            with open(self.log_path, "r") as f:
+                lines = f.readlines()
+
+            for i, line in enumerate(lines):
+                if "SYSTEM INFO" in line:
+                    # Next line is header, line after is data
+                    if i + 2 < len(lines):
+                        header = lines[i + 1].strip().split(",")
+                        data = lines[i + 2].strip().split(",")
+                        for h, d in zip(header, data):
+                            if h in ("os", "cpu", "gpu", "kernel"):
+                                info[h] = d
+                    break
+        except Exception:
+            pass
+
+        return info
+
     def analyze(self) -> dict:
         """
         Perform full analysis of the frametime data.

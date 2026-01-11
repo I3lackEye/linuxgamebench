@@ -16,6 +16,8 @@ class Preferences:
         "default_resolution": "2",  # FHD
         "default_upload": "y",
         "default_continue": "c",
+        "gpu_preference": None,  # PCI address of preferred GPU
+        "gpu_display_name": None,  # Display name for preferred GPU
     }
 
     RESOLUTION_NAMES = {
@@ -88,6 +90,34 @@ class Preferences:
         if value.lower() in ("c", "e"):
             self._prefs["default_continue"] = value.lower()
             self._save()
+
+    @property
+    def gpu_preference(self) -> Optional[str]:
+        """Get preferred GPU PCI address."""
+        return self._prefs.get("gpu_preference")
+
+    @gpu_preference.setter
+    def gpu_preference(self, value: Optional[str]) -> None:
+        """Set preferred GPU PCI address."""
+        self._prefs["gpu_preference"] = value
+        self._save()
+
+    @property
+    def gpu_display_name(self) -> Optional[str]:
+        """Get preferred GPU display name."""
+        return self._prefs.get("gpu_display_name")
+
+    @gpu_display_name.setter
+    def gpu_display_name(self, value: Optional[str]) -> None:
+        """Set preferred GPU display name."""
+        self._prefs["gpu_display_name"] = value
+        self._save()
+
+    def clear_gpu_preference(self) -> None:
+        """Clear GPU preference (reset to ask each time)."""
+        self._prefs["gpu_preference"] = None
+        self._prefs["gpu_display_name"] = None
+        self._save()
 
     def get_resolution_name(self, key: Optional[str] = None) -> str:
         """Get resolution name for display."""

@@ -93,6 +93,131 @@ def _normalize_resolution(res: str) -> str:
     return mapping.get(res.upper(), res)
 
 
+def _select_gpu_for_benchmark(system_info: dict, console: "Console", log_gpu: str = None) -> dict:
+    """
+    Select GPU for benchmark upload. Handles multi-GPU systems.
+
+    If multiple GPUs detected:
+    - Use saved preference if available
+    - Otherwise ask user, with log GPU (or dGPU) as default
+
+    Args:
+        system_info: Current system info dict
+        console: Rich console for output
+        log_gpu: GPU name from MangoHud log (used as intelligent default)
+
+    Returns:
+        Modified system_info dict with selected GPU.
+    """
+    from linux_game_benchmark.system.hardware_info import detect_all_gpus, get_gpu_info
+    from linux_game_benchmark.config.preferences import preferences
+
+    gpus = detect_all_gpus()
+
+    # Single GPU or detection failed - use default system_info
+    if len(gpus) <= 1:
+        return system_info
+
+    # Multiple GPUs detected - check for saved preference
+    pref_pci = preferences.gpu_preference
+    if pref_pci:
+        for gpu in gpus:
+            if gpu["pci_address"] == pref_pci:
+                console.print(f"[dim]GPU: {gpu['display_name']} (saved)[/dim]")
+                # Update system_info with selected GPU
+                return _apply_gpu_selection(system_info, gpu)
+        # Preference not found (maybe hardware changed) - ask again
+        preferences.clear_gpu_preference()
+
+    # Determine default selection
+    default_idx = 1
+
+    # Try to match log GPU first
+    if log_gpu:
+        log_gpu_lower = log_gpu.lower()
+        for i, gpu in enumerate(gpus, 1):
+            # Match by specific model identifiers (not just vendor)
+            model_lower = gpu["model"].lower()
+            # Look for specific patterns like "rx 7900", "rtx 4090", "arc a770"
+            # Check if key parts of the model appear in the log GPU
+            if "rx " in model_lower:
+                # AMD RX - check for model number
+                import re
+                rx_match = re.search(r'rx\s*(\d{4})', model_lower)
+                if rx_match and rx_match.group(0) in log_gpu_lower:
+                    default_idx = i
+                    break
+            elif "rtx " in model_lower or "gtx " in model_lower:
+                # NVIDIA - check for model number
+                import re
+                nvidia_match = re.search(r'(rtx|gtx)\s*\d{3,4}', model_lower)
+                if nvidia_match and nvidia_match.group(0) in log_gpu_lower:
+                    default_idx = i
+                    break
+            elif "arc " in model_lower:
+                # Intel Arc
+                if "arc" in log_gpu_lower:
+                    default_idx = i
+                    break
+            elif model_lower in log_gpu_lower:
+                # Fallback: exact model match
+                default_idx = i
+                break
+
+    # Fallback: prefer dGPU
+    if default_idx == 1 and not log_gpu:
+        for i, gpu in enumerate(gpus, 1):
+            if gpu["is_dgpu"]:
+                default_idx = i
+                break
+
+    # Ask user with intelligent default
+    console.print(f"\n[bold]Multiple GPUs detected:[/bold]")
+    for i, gpu in enumerate(gpus, 1):
+        marker = "[green]●[/green]" if i == default_idx else "[dim]○[/dim]"
+        console.print(f"  {marker} [{i}] {gpu['display_name']}")
+
+    try:
+        choice = typer.prompt(f"Which GPU was used? [1-{len(gpus)}]", default=str(default_idx)).strip()
+        selected_idx = int(choice) - 1
+        if selected_idx < 0 or selected_idx >= len(gpus):
+            selected_idx = default_idx - 1
+    except (ValueError, KeyboardInterrupt):
+        selected_idx = default_idx - 1
+
+    selected = gpus[selected_idx]
+
+    # Ask to save preference
+    try:
+        save = typer.prompt("Remember for future benchmarks? [y/N]", default="n").strip().lower()
+        if save in ["y", "yes", "j", "ja"]:
+            preferences.gpu_preference = selected["pci_address"]
+            preferences.gpu_display_name = selected["display_name"]
+            console.print(f"[dim]Saved: {selected['display_name']}[/dim]")
+    except (KeyboardInterrupt, EOFError):
+        pass
+
+    return _apply_gpu_selection(system_info, selected)
+
+
+def _apply_gpu_selection(system_info: dict, selected_gpu: dict) -> dict:
+    """Apply selected GPU to system_info dict."""
+    # Get detailed GPU info for the selected GPU
+    from linux_game_benchmark.system.hardware_info import get_gpu_info
+
+    # Get current GPU info as base (has driver info, etc.)
+    gpu_info = get_gpu_info()
+
+    # Override model and vendor with selection
+    gpu_info["model"] = f"{selected_gpu['vendor']} {selected_gpu['model']}"
+    gpu_info["vendor"] = selected_gpu["vendor"]
+
+    # Create new system_info with updated GPU
+    new_info = system_info.copy()
+    new_info["gpu"] = gpu_info
+    return new_info
+
+
 app = typer.Typer(
     name="lgb",
     help="Linux Game Benchmark - Automated gaming benchmark tool",
@@ -356,7 +481,15 @@ def settings() -> None:
         console.print(f"  [1] Default Resolution: [bold green]{res_name}[/bold green]")
         console.print(f"  [2] Default Upload:     [bold green]{upload}[/bold green]")
         console.print(f"  [3] Default Continue:   [bold green]{cont}[/bold green]")
-        console.print(f"  [4] Reset to defaults")
+
+        # GPU preference
+        gpu_pref = preferences.gpu_display_name
+        if gpu_pref:
+            console.print(f"  [4] GPU Preference:     [bold green]{gpu_pref}[/bold green]")
+        else:
+            console.print(f"  [4] GPU Preference:     [dim]Ask each time[/dim]")
+
+        console.print(f"  [5] Reset to defaults")
         console.print(f"  [0] Back")
 
         try:
@@ -403,6 +536,19 @@ def settings() -> None:
             except:
                 pass
         elif choice == "4":
+            # GPU preference management
+            if preferences.gpu_preference:
+                console.print(f"\n[bold]Current GPU:[/bold] {preferences.gpu_display_name}")
+                try:
+                    clear = typer.prompt("Clear GPU preference? [y/N]", default="n").strip().lower()
+                    if clear in ("y", "yes", "j", "ja"):
+                        preferences.clear_gpu_preference()
+                        console.print("[green]GPU preference cleared - will ask next time[/green]")
+                except:
+                    pass
+            else:
+                console.print("\n[dim]No GPU preference set. Will be asked during first benchmark on multi-GPU system.[/dim]")
+        elif choice == "5":
             preferences.reset()
             console.print("[green]Reset to defaults[/green]")
 
@@ -955,6 +1101,10 @@ def benchmark(
             except:
                 comment = ""
 
+            # 2b. GPU selection for multi-GPU systems (use log GPU as intelligent default)
+            log_gpu = analyzer.log_system_info.get("gpu")
+            selected_system_info = _select_gpu_for_benchmark(system_info, console, log_gpu=log_gpu)
+
             # 3. Save run locally
             stutter_rating = stutter.get("stutter_rating", "Unknown")
             consistency_rating = frame_pacing.get("consistency_rating", "Unknown")
@@ -1019,13 +1169,13 @@ def benchmark(
                             game_name=target_game["name"],
                             resolution=_normalize_resolution(selected_resolution),
                             system_info={
-                                "gpu": _short_gpu(system_info.get("gpu", {}).get("model")),
-                                "cpu": _short_cpu(system_info.get("cpu", {}).get("model")),
-                                "os": system_info.get("os", {}).get("name", "Linux"),
-                                "kernel": _short_kernel(system_info.get("os", {}).get("kernel")),
-                                "gpu_driver": system_info.get("gpu", {}).get("driver_version"),
-                                "vulkan": system_info.get("gpu", {}).get("vulkan_version"),
-                                "ram_gb": int(system_info.get("ram", {}).get("total_gb", 0)),
+                                "gpu": _short_gpu(selected_system_info.get("gpu", {}).get("model")),
+                                "cpu": _short_cpu(selected_system_info.get("cpu", {}).get("model")),
+                                "os": selected_system_info.get("os", {}).get("name", "Linux"),
+                                "kernel": _short_kernel(selected_system_info.get("os", {}).get("kernel")),
+                                "gpu_driver": selected_system_info.get("gpu", {}).get("driver_version"),
+                                "vulkan": selected_system_info.get("gpu", {}).get("vulkan_version"),
+                                "ram_gb": int(selected_system_info.get("ram", {}).get("total_gb", 0)),
                             },
                             metrics={
                                 "fps_avg": fps.get('average', 0),
@@ -1080,13 +1230,13 @@ def benchmark(
                                     game_name=target_game["name"],
                                     resolution=_normalize_resolution(selected_resolution),
                                     system_info={
-                                        "gpu": _short_gpu(system_info.get("gpu", {}).get("model")),
-                                        "cpu": _short_cpu(system_info.get("cpu", {}).get("model")),
-                                        "os": system_info.get("os", {}).get("name", "Linux"),
-                                        "kernel": _short_kernel(system_info.get("os", {}).get("kernel")),
-                                        "gpu_driver": system_info.get("gpu", {}).get("driver_version"),
-                                        "vulkan": system_info.get("gpu", {}).get("vulkan_version"),
-                                        "ram_gb": int(system_info.get("ram", {}).get("total_gb", 0)),
+                                        "gpu": _short_gpu(selected_system_info.get("gpu", {}).get("model")),
+                                        "cpu": _short_cpu(selected_system_info.get("cpu", {}).get("model")),
+                                        "os": selected_system_info.get("os", {}).get("name", "Linux"),
+                                        "kernel": _short_kernel(selected_system_info.get("os", {}).get("kernel")),
+                                        "gpu_driver": selected_system_info.get("gpu", {}).get("driver_version"),
+                                        "vulkan": selected_system_info.get("gpu", {}).get("vulkan_version"),
+                                        "ram_gb": int(selected_system_info.get("ram", {}).get("total_gb", 0)),
                                     },
                                     metrics={
                                         "fps_avg": fps.get('average', 0),
