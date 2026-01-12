@@ -103,6 +103,7 @@ class BenchmarkAPIClient:
         system_info: Dict[str, Any],
         metrics: Dict[str, Any],
         frametimes: Optional[list] = None,
+        mangohud_log_compressed: Optional[str] = None,
         comment: Optional[str] = None,
         require_auth: bool = True,
     ) -> UploadResult:
@@ -143,6 +144,7 @@ class BenchmarkAPIClient:
                 "gpu_driver": system_info.get("gpu_driver"),
                 "vulkan": system_info.get("vulkan"),
                 "ram_gb": system_info.get("ram_gb"),
+                "scheduler": system_info.get("scheduler"),
             },
             "metrics": {
                 "fps_avg": metrics.get("fps_avg") or metrics.get("average", 0),
@@ -156,6 +158,7 @@ class BenchmarkAPIClient:
             },
             "client_version": settings.CLIENT_VERSION,
             "frametimes": frametimes,
+            "mangohud_log_compressed": mangohud_log_compressed,
             "comment": comment,
         }
 
@@ -275,6 +278,7 @@ def upload_benchmark(
     system_info: Dict[str, Any],
     metrics: Dict[str, Any],
     frametimes: Optional[list] = None,
+    mangohud_log_compressed: Optional[str] = None,
     comment: Optional[str] = None,
 ) -> UploadResult:
     """
@@ -290,6 +294,7 @@ def upload_benchmark(
         system_info=system_info,
         metrics=metrics,
         frametimes=frametimes,
+        mangohud_log_compressed=mangohud_log_compressed,
         comment=comment,
     )
 

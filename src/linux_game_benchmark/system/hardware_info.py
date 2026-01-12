@@ -527,3 +527,48 @@ def is_compositor_running() -> bool:
         return False
 
 
+def detect_sched_ext() -> Optional[str]:
+    """
+    Detect active sched-ext scheduler.
+
+    sched-ext (Extensible Scheduler Class) allows custom schedulers like:
+    - scx_lavd: Gaming-optimized (Steam Deck, Igalia)
+    - scx_rusty: Load balancing, LLC-aware
+    - scx_bpfland: General purpose
+
+    Returns:
+        Scheduler name (e.g., "scx_lavd") or None if not using sched-ext.
+    """
+    try:
+        path = Path("/sys/kernel/sched_ext/root/ops")
+        if path.exists():
+            scheduler = path.read_text().strip()
+            if scheduler:
+                return scheduler
+    except Exception:
+        pass
+    return None
+
+
+def detect_discrete_gpu_pci() -> Optional[str]:
+    """
+    Detect discrete GPU PCI address for MangoHud.
+
+    In multi-GPU systems, MangoHud may log the wrong GPU (iGPU instead of dGPU).
+    This function returns the PCI address of the first discrete GPU found,
+    which can be used with MangoHud's `pci_dev` option.
+
+    Returns:
+        PCI address like "0000:03:00.0" or None if no discrete GPU found.
+    """
+    gpus = detect_all_gpus()
+
+    # Find first discrete GPU
+    for gpu in gpus:
+        if gpu.get("is_dgpu"):
+            return gpu.get("pci_address")
+
+    # No discrete GPU found - return None (MangoHud will use default)
+    return None
+
+

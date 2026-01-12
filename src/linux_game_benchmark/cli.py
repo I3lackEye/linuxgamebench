@@ -26,27 +26,270 @@ def _short_gpu(name: str) -> str:
     """Shorten GPU name for consistent storage."""
     if not name:
         return "Unknown"
-    # AMD RX 7000/6000 series: "AMD Radeon RX 7900 XTX" → "RX 7900 XTX"
-    m = re.search(r'RX\s*(\d{4}\s*XT[Xi]?)', name, re.I)
-    if m:
-        return "RX " + m.group(1).replace('  ', ' ')
-    m = re.search(r'RX\s*(\d{3,4})', name, re.I)
-    if m:
-        return "RX " + m.group(1)
-    # NVIDIA: "NVIDIA GeForce RTX 4090" → "RTX 4090"
-    m = re.search(r'(RTX|GTX)\s*(\d{3,4}(\s*Ti)?(\s*Super)?)', name, re.I)
-    if m:
-        return f"{m.group(1).upper()} {m.group(2)}"
-    # Intel Arc: "Intel Arc A770" → "Arc A770"
-    m = re.search(r'Arc\s*(A\d{3,4})', name, re.I)
-    if m:
-        return "Arc " + m.group(1)
-    # Intel integrated: "Intel Iris Xe Graphics" → keep short
-    m = re.search(r'(Iris\s+\w+)', name, re.I)
-    if m:
-        return m.group(1)
-    # Fallback: truncate to 30 chars
-    return name[:30] if len(name) > 30 else name
+
+    # === NVIDIA RTX 50 Series (Blackwell 2025) ===
+    if "5090" in name:
+        return "RTX 5090"
+    if "5080" in name:
+        return "RTX 5080"
+    if "5070 Ti" in name:
+        return "RTX 5070 Ti"
+    if "5070" in name:
+        return "RTX 5070"
+    if "5060 Ti" in name:
+        return "RTX 5060 Ti"
+    if "5060" in name:
+        return "RTX 5060"
+
+    # === NVIDIA RTX 40 Series (Ada Lovelace) ===
+    if "4090" in name:
+        return "RTX 4090"
+    if "4080 Super" in name:
+        return "RTX 4080 Super"
+    if "4080" in name:
+        return "RTX 4080"
+    if "4070 Ti Super" in name:
+        return "RTX 4070 Ti Super"
+    if "4070 Ti" in name:
+        return "RTX 4070 Ti"
+    if "4070 Super" in name:
+        return "RTX 4070 Super"
+    if "4070" in name:
+        return "RTX 4070"
+    if "4060 Ti" in name:
+        return "RTX 4060 Ti"
+    if "4060" in name:
+        return "RTX 4060"
+
+    # === NVIDIA RTX 30 Series (Ampere) ===
+    if "3090 Ti" in name:
+        return "RTX 3090 Ti"
+    if "3090" in name:
+        return "RTX 3090"
+    if "3080 Ti" in name:
+        return "RTX 3080 Ti"
+    if "3080" in name:
+        return "RTX 3080"
+    if "3070 Ti" in name:
+        return "RTX 3070 Ti"
+    if "3070" in name:
+        return "RTX 3070"
+    if "3060 Ti" in name:
+        return "RTX 3060 Ti"
+    if "3060" in name:
+        return "RTX 3060"
+    if "3050" in name:
+        return "RTX 3050"
+
+    # === NVIDIA RTX 20 Series (Turing) ===
+    if "2080 Ti" in name:
+        return "RTX 2080 Ti"
+    if "2080 Super" in name:
+        return "RTX 2080 Super"
+    if "2080" in name:
+        return "RTX 2080"
+    if "2070 Super" in name:
+        return "RTX 2070 Super"
+    if "2070" in name:
+        return "RTX 2070"
+    if "2060 Super" in name:
+        return "RTX 2060 Super"
+    if "2060" in name:
+        return "RTX 2060"
+
+    # === NVIDIA GTX 16 Series ===
+    if "1660 Ti" in name:
+        return "GTX 1660 Ti"
+    if "1660 Super" in name:
+        return "GTX 1660 Super"
+    if "1660" in name:
+        return "GTX 1660"
+    if "1650 Super" in name:
+        return "GTX 1650 Super"
+    if "1650" in name:
+        return "GTX 1650"
+
+    # === NVIDIA GTX 16 Series (budget) ===
+    if "1630" in name:
+        return "GTX 1630"
+
+    # === NVIDIA GTX 10 Series (Pascal 2016) ===
+    if "1080 Ti" in name:
+        return "GTX 1080 Ti"
+    if "1080" in name:
+        return "GTX 1080"
+    if "1070 Ti" in name:
+        return "GTX 1070 Ti"
+    if "1070" in name:
+        return "GTX 1070"
+    if "1060" in name:
+        return "GTX 1060"
+    if "1050 Ti" in name:
+        return "GTX 1050 Ti"
+    if "1050" in name:
+        return "GTX 1050"
+    if "GT 1030" in name or "GT1030" in name:
+        return "GT 1030"
+
+    # === NVIDIA GTX 900 Series (Maxwell 2014-2015) ===
+    if "980 Ti" in name:
+        return "GTX 980 Ti"
+    if "980" in name and "GTX" in name:
+        return "GTX 980"
+    if "970" in name and "GTX" in name:
+        return "GTX 970"
+    if "960" in name and "GTX" in name:
+        return "GTX 960"
+    if "950" in name and "GTX" in name:
+        return "GTX 950"
+
+    # === AMD RX 9000 Series (RDNA 4 - 2025) ===
+    if "9070 XT" in name:
+        return "RX 9070 XT"
+    if "9070" in name:
+        return "RX 9070"
+    if "9060 XT" in name:
+        return "RX 9060 XT"
+    if "9060" in name:
+        return "RX 9060"
+
+    # === AMD RX 7000 Series (RDNA 3) ===
+    if "7900 XTX" in name:
+        return "RX 7900 XTX"
+    if "7900 XT" in name and "XTX" not in name:
+        return "RX 7900 XT"
+    if "7900 GRE" in name:
+        return "RX 7900 GRE"
+    if "7800 XT" in name:
+        return "RX 7800 XT"
+    if "7700 XT" in name:
+        return "RX 7700 XT"
+    if "7600 XT" in name:
+        return "RX 7600 XT"
+    if "7600" in name and "RX" in name:
+        return "RX 7600"
+
+    # === AMD RX 6000 Series (RDNA 2) ===
+    if "6950 XT" in name:
+        return "RX 6950 XT"
+    if "6900 XT" in name:
+        return "RX 6900 XT"
+    if "6800 XT" in name:
+        return "RX 6800 XT"
+    if "6800" in name and "RX" in name and "XT" not in name:
+        return "RX 6800"
+    if "6750 XT" in name:
+        return "RX 6750 XT"
+    if "6700 XT" in name:
+        return "RX 6700 XT"
+    if "6700" in name and "RX" in name and "XT" not in name:
+        return "RX 6700"
+    if "6650 XT" in name:
+        return "RX 6650 XT"
+    if "6600 XT" in name:
+        return "RX 6600 XT"
+    if "6600" in name and "RX" in name and "XT" not in name:
+        return "RX 6600"
+    if "6500 XT" in name:
+        return "RX 6500 XT"
+    if "6400" in name:
+        return "RX 6400"
+
+    # === AMD RX 5000 Series (RDNA 1 - 2019) ===
+    if "5700 XT" in name:
+        return "RX 5700 XT"
+    if "5700" in name and "RX" in name and "XT" not in name:
+        return "RX 5700"
+    if "5600 XT" in name:
+        return "RX 5600 XT"
+    if "5600" in name and "RX" in name and "XT" not in name:
+        return "RX 5600"
+    if "5500 XT" in name:
+        return "RX 5500 XT"
+    if "5500" in name and "RX" in name and "XT" not in name:
+        return "RX 5500"
+
+    # === AMD RX 500 Series (Polaris 2017) ===
+    if "RX 590" in name or "RX590" in name:
+        return "RX 590"
+    if "RX 580" in name or "RX580" in name:
+        return "RX 580"
+    if "RX 570" in name or "RX570" in name:
+        return "RX 570"
+    if "RX 560" in name or "RX560" in name:
+        return "RX 560"
+    if "RX 550" in name or "RX550" in name:
+        return "RX 550"
+
+    # === AMD RX 400 Series (Polaris 2016) ===
+    if "RX 480" in name or "RX480" in name:
+        return "RX 480"
+    if "RX 470" in name or "RX470" in name:
+        return "RX 470"
+    if "RX 460" in name or "RX460" in name:
+        return "RX 460"
+
+    # === AMD R9 Fury Series (Fiji 2015) ===
+    if "Fury X" in name:
+        return "R9 Fury X"
+    if "Fury" in name and "Nano" not in name:
+        return "R9 Fury"
+    if "R9 Nano" in name or "Nano" in name:
+        return "R9 Nano"
+
+    # === AMD R9 300 Series (GCN 2015) ===
+    if "R9 390X" in name or "390X" in name:
+        return "R9 390X"
+    if "R9 390" in name or ("390" in name and "X" not in name):
+        return "R9 390"
+    if "R9 380X" in name or "380X" in name:
+        return "R9 380X"
+    if "R9 380" in name or ("380" in name and "X" not in name):
+        return "R9 380"
+    if "R7 370" in name or "370" in name:
+        return "R7 370"
+    if "R7 360" in name or "360" in name:
+        return "R7 360"
+
+    # === Intel Arc B-Series (Battlemage 2024) ===
+    if "B580" in name:
+        return "Arc B580"
+    if "B570" in name:
+        return "Arc B570"
+
+    # === Intel Arc A-Series (Alchemist) ===
+    if "A770" in name:
+        return "Arc A770"
+    if "A750" in name:
+        return "Arc A750"
+    if "A580" in name:
+        return "Arc A580"
+    if "A380" in name:
+        return "Arc A380"
+    if "A310" in name:
+        return "Arc A310"
+
+    # === Intel Integrated ===
+    if "Iris Xe" in name:
+        return "Iris Xe"
+    if "Iris Plus" in name:
+        return "Iris Plus"
+    if "UHD" in name and "Intel" in name:
+        return "Intel UHD"
+
+    # === AMD APU (integrated) ===
+    if "780M" in name:
+        return "Radeon 780M"
+    if "760M" in name:
+        return "Radeon 760M"
+    if "680M" in name:
+        return "Radeon 680M"
+    if "Vega" in name:
+        return "Radeon Vega"
+
+    # Fallback
+    clean = name.split("(")[0].strip()
+    return clean[:30] if len(clean) > 30 else clean
 
 
 def _short_cpu(name: str) -> str:
@@ -95,122 +338,74 @@ def _normalize_resolution(res: str) -> str:
 
 def _select_gpu_for_benchmark(system_info: dict, console: "Console", log_gpu: str = None) -> dict:
     """
-    Select GPU for benchmark upload. Handles multi-GPU systems.
+    Get GPU info for benchmark upload.
 
-    If multiple GPUs detected:
-    - Use saved preference if available
-    - Otherwise ask user, with log GPU (or dGPU) as default
+    Server uses MangoHud log GPU as authoritative source, so no user selection needed.
+    This function just formats the GPU info from the log or falls back to lspci.
 
     Args:
         system_info: Current system info dict
         console: Rich console for output
-        log_gpu: GPU name from MangoHud log (used as intelligent default)
+        log_gpu: GPU name from MangoHud log (authoritative source)
 
     Returns:
-        Modified system_info dict with selected GPU.
+        Modified system_info dict with GPU info.
     """
     from linux_game_benchmark.system.hardware_info import detect_all_gpus, get_gpu_info
-    from linux_game_benchmark.config.preferences import preferences
 
+    # If we have a valid log GPU, use it directly
+    if log_gpu and "VGA" not in log_gpu.upper() and "controller" not in log_gpu.lower():
+        clean_name = log_gpu.split("(")[0].strip()
+        console.print(f"[dim]GPU: {clean_name}[/dim]")
+
+        # Get base GPU info (for driver version etc.)
+        gpu_info = get_gpu_info()
+        gpu_info["model"] = clean_name
+
+        new_info = system_info.copy()
+        new_info["gpu"] = gpu_info
+        return new_info
+
+    # Fallback: use lspci detection (prefer dGPU)
     gpus = detect_all_gpus()
+    if gpus:
+        # Prefer discrete GPU
+        selected = next((g for g in gpus if g["is_dgpu"]), gpus[0])
+        console.print(f"[dim]GPU: {selected['display_name']}[/dim]")
+        return _apply_gpu_selection(system_info, selected, log_gpu)
 
-    # Single GPU or detection failed - use default system_info
-    if len(gpus) <= 1:
-        return system_info
-
-    # Multiple GPUs detected - check for saved preference
-    pref_pci = preferences.gpu_preference
-    if pref_pci:
-        for gpu in gpus:
-            if gpu["pci_address"] == pref_pci:
-                console.print(f"[dim]GPU: {gpu['display_name']} (saved)[/dim]")
-                # Update system_info with selected GPU
-                return _apply_gpu_selection(system_info, gpu)
-        # Preference not found (maybe hardware changed) - ask again
-        preferences.clear_gpu_preference()
-
-    # Determine default selection
-    default_idx = 1
-
-    # Try to match log GPU first
-    if log_gpu:
-        log_gpu_lower = log_gpu.lower()
-        for i, gpu in enumerate(gpus, 1):
-            # Match by specific model identifiers (not just vendor)
-            model_lower = gpu["model"].lower()
-            # Look for specific patterns like "rx 7900", "rtx 4090", "arc a770"
-            # Check if key parts of the model appear in the log GPU
-            if "rx " in model_lower:
-                # AMD RX - check for model number
-                import re
-                rx_match = re.search(r'rx\s*(\d{4})', model_lower)
-                if rx_match and rx_match.group(0) in log_gpu_lower:
-                    default_idx = i
-                    break
-            elif "rtx " in model_lower or "gtx " in model_lower:
-                # NVIDIA - check for model number
-                import re
-                nvidia_match = re.search(r'(rtx|gtx)\s*\d{3,4}', model_lower)
-                if nvidia_match and nvidia_match.group(0) in log_gpu_lower:
-                    default_idx = i
-                    break
-            elif "arc " in model_lower:
-                # Intel Arc
-                if "arc" in log_gpu_lower:
-                    default_idx = i
-                    break
-            elif model_lower in log_gpu_lower:
-                # Fallback: exact model match
-                default_idx = i
-                break
-
-    # Fallback: prefer dGPU
-    if default_idx == 1 and not log_gpu:
-        for i, gpu in enumerate(gpus, 1):
-            if gpu["is_dgpu"]:
-                default_idx = i
-                break
-
-    # Ask user with intelligent default
-    console.print(f"\n[bold]Multiple GPUs detected:[/bold]")
-    for i, gpu in enumerate(gpus, 1):
-        marker = "[green]●[/green]" if i == default_idx else "[dim]○[/dim]"
-        console.print(f"  {marker} [{i}] {gpu['display_name']}")
-
-    try:
-        choice = typer.prompt(f"Which GPU was used? [1-{len(gpus)}]", default=str(default_idx)).strip()
-        selected_idx = int(choice) - 1
-        if selected_idx < 0 or selected_idx >= len(gpus):
-            selected_idx = default_idx - 1
-    except (ValueError, KeyboardInterrupt):
-        selected_idx = default_idx - 1
-
-    selected = gpus[selected_idx]
-
-    # Ask to save preference
-    try:
-        save = typer.prompt("Remember for future benchmarks? [y/N]", default="n").strip().lower()
-        if save in ["y", "yes", "j", "ja"]:
-            preferences.gpu_preference = selected["pci_address"]
-            preferences.gpu_display_name = selected["display_name"]
-            console.print(f"[dim]Saved: {selected['display_name']}[/dim]")
-    except (KeyboardInterrupt, EOFError):
-        pass
-
-    return _apply_gpu_selection(system_info, selected)
+    # No GPU detected - use existing system_info
+    return system_info
 
 
-def _apply_gpu_selection(system_info: dict, selected_gpu: dict) -> dict:
-    """Apply selected GPU to system_info dict."""
+def _apply_gpu_selection(system_info: dict, selected_gpu: dict, log_gpu: str = None) -> dict:
+    """Apply selected GPU to system_info dict.
+
+    Args:
+        system_info: Current system info dict
+        selected_gpu: Selected GPU from detect_all_gpus()
+        log_gpu: GPU name from MangoHud log (most accurate source)
+    """
     # Get detailed GPU info for the selected GPU
     from linux_game_benchmark.system.hardware_info import get_gpu_info
 
     # Get current GPU info as base (has driver info, etc.)
     gpu_info = get_gpu_info()
 
-    # Override model and vendor with selection
-    gpu_info["model"] = f"{selected_gpu['vendor']} {selected_gpu['model']}"
-    gpu_info["vendor"] = selected_gpu["vendor"]
+    # Prefer MangoHud log GPU name (most accurate - shows actual GPU model)
+    # Example: "AMD Radeon RX 7900 XTX (RADV NAVI31)"
+    # lspci shows all variants: "Radeon RX 7900 XT/7900 XTX/7900 GRE/7900M"
+    if log_gpu and "VGA" not in log_gpu.upper() and "controller" not in log_gpu.lower():
+        # Clean up log_gpu: remove driver info in parentheses
+        # "AMD Radeon RX 7900 XTX (RADV NAVI31)" → "AMD Radeon RX 7900 XTX"
+        clean_log_gpu = log_gpu.split("(")[0].strip()
+        if clean_log_gpu:
+            gpu_info["model"] = clean_log_gpu
+            gpu_info["vendor"] = selected_gpu["vendor"]
+    else:
+        # Fallback: use detect_all_gpus() model (may have all variants)
+        gpu_info["model"] = f"{selected_gpu['vendor']} {selected_gpu['model']}"
+        gpu_info["vendor"] = selected_gpu["vendor"]
 
     # Create new system_info with updated GPU
     new_info = system_info.copy()
@@ -481,15 +676,7 @@ def settings() -> None:
         console.print(f"  [1] Default Resolution: [bold green]{res_name}[/bold green]")
         console.print(f"  [2] Default Upload:     [bold green]{upload}[/bold green]")
         console.print(f"  [3] Default Continue:   [bold green]{cont}[/bold green]")
-
-        # GPU preference
-        gpu_pref = preferences.gpu_display_name
-        if gpu_pref:
-            console.print(f"  [4] GPU Preference:     [bold green]{gpu_pref}[/bold green]")
-        else:
-            console.print(f"  [4] GPU Preference:     [dim]Ask each time[/dim]")
-
-        console.print(f"  [5] Reset to defaults")
+        console.print(f"  [4] Reset to defaults")
         console.print(f"  [0] Back")
 
         try:
@@ -536,19 +723,6 @@ def settings() -> None:
             except:
                 pass
         elif choice == "4":
-            # GPU preference management
-            if preferences.gpu_preference:
-                console.print(f"\n[bold]Current GPU:[/bold] {preferences.gpu_display_name}")
-                try:
-                    clear = typer.prompt("Clear GPU preference? [y/N]", default="n").strip().lower()
-                    if clear in ("y", "yes", "j", "ja"):
-                        preferences.clear_gpu_preference()
-                        console.print("[green]GPU preference cleared - will ask next time[/green]")
-                except:
-                    pass
-            else:
-                console.print("\n[dim]No GPU preference set. Will be asked during first benchmark on multi-GPU system.[/dim]")
-        elif choice == "5":
             preferences.reset()
             console.print("[green]Reset to defaults[/green]")
 
@@ -841,7 +1015,7 @@ def benchmark(
     from linux_game_benchmark.analysis.metrics import FrametimeAnalyzer
     from linux_game_benchmark.benchmark.storage import BenchmarkStorage, SystemFingerprint
     from linux_game_benchmark.analysis.report_generator import generate_multi_resolution_report
-    from linux_game_benchmark.system.hardware_info import get_system_info
+    from linux_game_benchmark.system.hardware_info import get_system_info, detect_discrete_gpu_pci
     from linux_game_benchmark.steam.launch_options import set_launch_options, restore_launch_options
     from linux_game_benchmark.api import upload_benchmark, check_api_status
 
@@ -898,6 +1072,16 @@ def benchmark(
         console.print(f"[yellow]Duration capped at {MAX_DURATION}s (5 min max)[/yellow]")
         duration = MAX_DURATION
 
+    # Detect discrete GPU for multi-GPU systems
+    gpu_pci = detect_discrete_gpu_pci()
+    if gpu_pci:
+        # Get GPU name from glxinfo (cleaner than lspci which shows all variants)
+        gpu_model = system_info.get("gpu", {}).get("model", "")
+        if gpu_model and gpu_model != "Unknown":
+            console.print(f"[dim]Detected discrete GPU: {gpu_model}[/dim]")
+        else:
+            console.print(f"[dim]Detected discrete GPU: {gpu_pci}[/dim]")
+
     # Configure MangoHud for manual logging with auto-stop
     mangohud_manager.backup_config()
     mangohud_manager.set_benchmark_config(
@@ -905,6 +1089,7 @@ def benchmark(
         show_hud=show_hud,
         manual_logging=True,
         log_duration=duration,  # Auto-stop after duration
+        gpu_pci_dev=gpu_pci,
     )
 
     # Set Steam launch options
@@ -1033,6 +1218,11 @@ def benchmark(
 
     def process_recording(log_path: Path) -> bool:
         """Process a recording. Returns False if user wants to end session."""
+        # Capture sched-ext scheduler NOW while game is still running
+        # (scheduler might only be active during gaming)
+        from linux_game_benchmark.system.hardware_info import detect_sched_ext
+        scheduler = detect_sched_ext()
+
         console.print(f"\n[bold green]═══ Recording complete! ═══[/bold green]")
 
         try:
@@ -1103,6 +1293,13 @@ def benchmark(
 
             # 2b. GPU selection for multi-GPU systems (use log GPU as intelligent default)
             log_gpu = analyzer.log_system_info.get("gpu")
+
+            # Validate log GPU - reject generic device types (e.g., "VGA controller")
+            invalid_gpu_patterns = ["vga controller", "3d controller", "unknown", "display controller"]
+            if log_gpu and any(p in log_gpu.lower() for p in invalid_gpu_patterns):
+                console.print(f"[yellow]⚠ MangoHud GPU ungültig: '{log_gpu}' - verwende lspci[/yellow]")
+                log_gpu = None  # Fallback to lspci detection
+
             selected_system_info = _select_gpu_for_benchmark(system_info, console, log_gpu=log_gpu)
 
             # 3. Save run locally
@@ -1149,6 +1346,19 @@ def benchmark(
 
                 # Upload (works with or without login)
                 if check_api_status():
+                    # Compress MangoHud log for storage
+                    import gzip
+                    import base64
+                    mangohud_log_compressed = None
+                    try:
+                        with open(log_path, 'rb') as f:
+                            raw_log = f.read()
+                        mangohud_log_compressed = base64.b64encode(gzip.compress(raw_log)).decode('ascii')
+                    except Exception:
+                        pass  # Log compression is optional
+
+                    # Note: scheduler was captured at recording stop (game still running)
+
                     # Calculate payload size for user feedback
                     import json as json_module
                     payload_data = {
@@ -1158,6 +1368,8 @@ def benchmark(
                         "frametimes": frametimes,
                     }
                     payload_size = len(json_module.dumps(payload_data))
+                    if mangohud_log_compressed:
+                        payload_size += len(mangohud_log_compressed)
                     size_kb = payload_size / 1024
                     size_str = f"{size_kb:.0f} KB" if size_kb < 1024 else f"{size_kb/1024:.1f} MB"
 
@@ -1176,6 +1388,7 @@ def benchmark(
                                 "gpu_driver": selected_system_info.get("gpu", {}).get("driver_version"),
                                 "vulkan": selected_system_info.get("gpu", {}).get("vulkan_version"),
                                 "ram_gb": int(selected_system_info.get("ram", {}).get("total_gb", 0)),
+                                "scheduler": scheduler,
                             },
                             metrics={
                                 "fps_avg": fps.get('average', 0),
@@ -1188,6 +1401,7 @@ def benchmark(
                                 "frame_count": fps.get('frame_count', 0),
                             },
                             frametimes=frametimes,
+                            mangohud_log_compressed=mangohud_log_compressed,
                             comment=comment if comment else None,
                         )
                     if result.success:
@@ -1237,6 +1451,7 @@ def benchmark(
                                         "gpu_driver": selected_system_info.get("gpu", {}).get("driver_version"),
                                         "vulkan": selected_system_info.get("gpu", {}).get("vulkan_version"),
                                         "ram_gb": int(selected_system_info.get("ram", {}).get("total_gb", 0)),
+                                        "scheduler": scheduler,
                                     },
                                     metrics={
                                         "fps_avg": fps.get('average', 0),
@@ -1249,6 +1464,7 @@ def benchmark(
                                         "frame_count": fps.get('frame_count', 0),
                                     },
                                     frametimes=frametimes,
+                                    mangohud_log_compressed=mangohud_log_compressed,
                                     comment=comment if comment else None,
                                 )
                                 if result.success:
@@ -1300,7 +1516,8 @@ def benchmark(
 
         console.print(f"[green]Game launch initiated![/green]")
         console.print(f"\n[bold yellow]Once the game is running, press [bold red]Shift+F2[/bold red] to start recording[/bold yellow]")
-        console.print(f"[dim]Red dot in overlay = recording. Press Shift+F2 again to stop.[/dim]\n")
+        console.print(f"[dim]Red dot in overlay = recording. Press Shift+F2 again to stop.[/dim]")
+        console.print(f"[dim]Press [bold cyan]Shift+F3[/bold cyan] to toggle HUD visibility.[/dim]\n")
 
         # Monitor for recordings (no PID check - user ends session manually)
         session_active = True

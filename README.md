@@ -227,22 +227,7 @@ lgb login          # Login to your account
 
 ## Multi-GPU Systems
 
-On laptops and desktops with multiple GPUs (e.g., Intel iGPU + NVIDIA dGPU), the tool automatically detects all graphics cards and asks which one was used for the benchmark:
-
-```
-Multiple GPUs detected:
-  ● [1] NVIDIA GeForce RTX 4060 (dGPU)
-  ○ [2] Intel UHD Graphics 770 (iGPU)
-
-Which GPU was used? [1-2]: 1
-Remember for future benchmarks? [y/N]: y
-```
-
-**Features:**
-- Automatic detection via MangoHud log (intelligent default)
-- Manual confirmation for accuracy
-- Save preference for future benchmarks
-- Reset via `lgb settings`
+On laptops and desktops with multiple GPUs (e.g., Intel iGPU + NVIDIA dGPU), the tool automatically detects the correct GPU from the MangoHud log. The GPU that was actually used for rendering is recorded - no manual selection needed.
 
 ## License
 

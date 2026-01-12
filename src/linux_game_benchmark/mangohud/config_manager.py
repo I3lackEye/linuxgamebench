@@ -2,6 +2,7 @@
 MangoHud Config Manager.
 
 Temporarily replaces the default MangoHud config for benchmarking.
+Ensures cleanup even if no original config existed.
 """
 
 import shutil
@@ -16,41 +17,71 @@ class MangoHudConfigManager:
         self.config_dir = Path.home() / ".config" / "MangoHud"
         self.config_file = self.config_dir / "MangoHud.conf"
         self.backup_file = self.config_dir / "MangoHud.conf.lgb_backup"
+        self.marker_file = self.config_dir / ".lgb_session_active"
         self._backup_created = False
+        self._had_original_config = False
 
-        # Auto-restore if backup exists from crashed session
+        # Auto-restore if crashed session detected
         self._auto_restore_if_needed()
 
     def _auto_restore_if_needed(self) -> None:
-        """Restore backup if it exists from a previous crashed session."""
-        if self.backup_file.exists():
-            try:
-                shutil.copy2(self.backup_file, self.config_file)
-                self.backup_file.unlink()
-            except Exception:
-                pass
-
-    def backup_config(self) -> bool:
-        """Backup the current MangoHud config."""
-        if not self.config_file.exists():
-            return True
-
-        try:
-            shutil.copy2(self.config_file, self.backup_file)
-            self._backup_created = True
-            return True
-        except Exception:
-            return False
-
-    def restore_config(self) -> bool:
-        """Restore the original MangoHud config."""
-        if not self._backup_created:
-            return True
+        """Restore/cleanup from a crashed session."""
+        if not self.marker_file.exists():
+            return
 
         try:
             if self.backup_file.exists():
+                # User had original config - restore it
                 shutil.copy2(self.backup_file, self.config_file)
                 self.backup_file.unlink()
+            else:
+                # User had no config - delete our benchmark config
+                if self.config_file.exists():
+                    self.config_file.unlink()
+            self.marker_file.unlink()
+        except Exception:
+            pass
+
+    def backup_config(self) -> bool:
+        """Backup the current MangoHud config."""
+        # Ensure config directory exists
+        self.config_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create session marker for crash recovery
+        try:
+            self.marker_file.touch()
+        except Exception:
+            pass
+
+        if self.config_file.exists():
+            try:
+                shutil.copy2(self.config_file, self.backup_file)
+                self._backup_created = True
+                self._had_original_config = True
+                return True
+            except Exception:
+                return False
+        else:
+            # User has no config - track this so we delete ours on restore
+            self._had_original_config = False
+            return True
+
+    def restore_config(self) -> bool:
+        """Restore original config or cleanup our benchmark config."""
+        try:
+            if self._backup_created and self.backup_file.exists():
+                # Restore original config
+                shutil.copy2(self.backup_file, self.config_file)
+                self.backup_file.unlink()
+            elif not self._had_original_config:
+                # User had no config before - delete ours
+                if self.config_file.exists():
+                    self.config_file.unlink()
+
+            # Remove session marker
+            if self.marker_file.exists():
+                self.marker_file.unlink()
+
             self._backup_created = False
             return True
         except Exception:
@@ -63,6 +94,7 @@ class MangoHudConfigManager:
         log_interval: int = 0,
         manual_logging: bool = False,
         log_duration: int = 0,
+        gpu_pci_dev: Optional[str] = None,
     ) -> bool:
         """
         Set MangoHud config for benchmarking.
@@ -73,6 +105,7 @@ class MangoHudConfigManager:
             log_interval: Logging interval in ms (0 = per-frame)
             manual_logging: If True, user must press Shift+F2 to start/stop recording
             log_duration: Recording duration in seconds (0 = unlimited)
+            gpu_pci_dev: PCI address of GPU to monitor (e.g., "0000:03:00.0")
         """
         # Ensure config directory exists
         self.config_dir.mkdir(parents=True, exist_ok=True)
@@ -100,7 +133,12 @@ class MangoHudConfigManager:
         config_lines.extend([
             "",
             "### Display Settings ###",
+            "toggle_hud=Shift_L+F3",
         ])
+
+        # GPU Selection for multi-GPU systems
+        if gpu_pci_dev:
+            config_lines.append(f"pci_dev={gpu_pci_dev}")
 
         if show_hud:
             config_lines.extend([
@@ -124,23 +162,55 @@ class MangoHudConfigManager:
         else:
             config_lines.append("no_display")
 
+        # Log EVERYTHING MangoHud can provide
         config_lines.extend([
             "",
-            "### Metrics to Log ###",
+            "### Metrics to Log - MAXIMUM ###",
             "fps",
             "frametime",
+            "frame_count",
+            "",
+            "# CPU - All",
             "cpu_stats",
-            "gpu_stats",
-            "ram",
-            "vram",
             "cpu_temp",
-            "gpu_temp",
-            "gpu_core_clock",
-            "gpu_mem_clock",
-            "gpu_power",
             "cpu_power",
             "cpu_mhz",
+            "core_load",
+            "",
+            "# GPU - All",
+            "gpu_stats",
+            "gpu_temp",
+            "gpu_junction_temp",
+            "gpu_mem_temp",
+            "gpu_power",
+            "gpu_core_clock",
+            "gpu_mem_clock",
+            "gpu_fan",
+            "gpu_voltage",
+            "throttling_status",
+            "",
+            "# Memory - All",
+            "ram",
+            "vram",
+            "swap",
+            "procmem",
+            "procmem_shared",
+            "procmem_virt",
+            "",
+            "# System - All",
             "resolution",
+            "wine",
+            "vulkan_driver",
+            "engine_version",
+            "io_read",
+            "io_write",
+            "network",
+            "",
+            "# Battery/Laptop - All",
+            "battery",
+            "battery_watt",
+            "battery_time",
+            "device_battery",
         ])
 
         try:

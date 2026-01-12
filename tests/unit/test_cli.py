@@ -276,23 +276,53 @@ class TestNormalizationFunctions:
         """AMD GPU names should be shortened."""
         from linux_game_benchmark.cli import _short_gpu
 
+        # RDNA 3/2/1
         assert _short_gpu("AMD Radeon RX 7900 XTX") == "RX 7900 XTX"
         assert _short_gpu("AMD Radeon RX 6800 XT") == "RX 6800 XT"
+        assert _short_gpu("AMD Radeon RX 5700 XT") == "RX 5700 XT"
+        # Polaris (RX 500/400)
         assert _short_gpu("AMD Radeon RX 580") == "RX 580"
+        assert _short_gpu("AMD Radeon RX 570") == "RX 570"
+        assert _short_gpu("AMD Radeon RX 480") == "RX 480"
+        assert _short_gpu("AMD Radeon RX 470") == "RX 470"
+        # R9 300 Series
+        assert _short_gpu("AMD Radeon R9 390X") == "R9 390X"
+        assert _short_gpu("AMD Radeon R9 390") == "R9 390"
+        assert _short_gpu("AMD Radeon R9 380") == "R9 380"
+        # Fury
+        assert _short_gpu("AMD Radeon R9 Fury X") == "R9 Fury X"
 
     def test_short_gpu_nvidia(self):
         """NVIDIA GPU names should be shortened."""
         from linux_game_benchmark.cli import _short_gpu
 
+        # RTX 40/30/20 Series
         assert _short_gpu("NVIDIA GeForce RTX 4090") == "RTX 4090"
+        assert _short_gpu("NVIDIA GeForce RTX 3080") == "RTX 3080"
+        assert _short_gpu("NVIDIA GeForce RTX 2080 Ti") == "RTX 2080 Ti"
+        # GTX 16/10 Series
+        assert _short_gpu("NVIDIA GeForce GTX 1660 Super") == "GTX 1660 Super"
         assert _short_gpu("NVIDIA GeForce GTX 1080 Ti") == "GTX 1080 Ti"
+        assert _short_gpu("NVIDIA GeForce GTX 1060") == "GTX 1060"
+        # GTX 900 Series (Maxwell)
+        assert _short_gpu("NVIDIA GeForce GTX 980 Ti") == "GTX 980 Ti"
+        assert _short_gpu("NVIDIA GeForce GTX 980") == "GTX 980"
+        assert _short_gpu("NVIDIA GeForce GTX 970") == "GTX 970"
+        assert _short_gpu("NVIDIA GeForce GTX 960") == "GTX 960"
+        # Budget
+        assert _short_gpu("NVIDIA GeForce GT 1030") == "GT 1030"
 
     def test_short_gpu_intel(self):
         """Intel GPU names should be shortened."""
         from linux_game_benchmark.cli import _short_gpu
 
-        result = _short_gpu("Intel Arc A770")
-        assert "Arc" in result and "A770" in result
+        # Arc discrete
+        assert _short_gpu("Intel Arc A770") == "Arc A770"
+        assert _short_gpu("Intel Arc A750") == "Arc A750"
+        assert _short_gpu("Intel Arc B580") == "Arc B580"
+        # Integrated
+        assert _short_gpu("Intel Iris Xe Graphics") == "Iris Xe"
+        assert _short_gpu("Intel UHD Graphics 770") == "Intel UHD"
 
     def test_short_gpu_unknown(self):
         """Unknown GPU names should be truncated."""
