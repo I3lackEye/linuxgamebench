@@ -18,6 +18,33 @@ class Preferences:
         "default_continue": "c",
         "gpu_preference": None,  # PCI address of preferred GPU
         "gpu_display_name": None,  # Display name for preferred GPU
+        # Game Settings Defaults
+        "default_preset": None,
+        "default_raytracing": None,
+        "default_upscaling": None,
+        "default_upscaling_quality": None,
+        "default_framegen": None,
+        "default_aa": None,
+        "default_hdr": None,
+        "default_vsync": None,
+        "default_framelimit": None,
+        "default_cpu_oc": None,
+        "default_gpu_oc": None,
+    }
+
+    # Valid options for game settings (used for validation)
+    VALID_OPTIONS = {
+        "preset": ["none", "low", "medium", "high", "ultra", "custom"],
+        "raytracing": ["none", "low", "medium", "high", "ultra", "pathtracing"],
+        "upscaling": ["none", "fsr1", "fsr2", "fsr3", "fsr4", "dlss", "dlss2", "dlss3", "dlss3.5", "dlss4", "dlss4.5", "xess", "xess1", "xess2", "tsr"],
+        "upscaling_quality": ["none", "performance", "balanced", "quality", "ultra-quality", "ultra quality"],
+        "framegen": ["none", "fsr3-fg", "dlss3-fg", "dlss4-fg", "dlss4-mfg", "xess-fg", "afmf", "afmf2", "afmf3", "smooth-motion"],
+        "aa": ["none", "fxaa", "smaa", "taa", "dlaa", "msaa"],
+        "hdr": ["on", "off"],
+        "vsync": ["on", "off"],
+        "framelimit": ["none", "30", "60", "120", "144", "165", "180", "240", "360"],
+        "cpu_oc": ["yes", "no"],
+        "gpu_oc": ["yes", "no"],
     }
 
     RESOLUTION_NAMES = {
@@ -118,6 +145,113 @@ class Preferences:
         self._prefs["gpu_preference"] = None
         self._prefs["gpu_display_name"] = None
         self._save()
+
+    # Game Settings Defaults - generic getter/setter
+    def _get_game_setting(self, key: str) -> Optional[str]:
+        """Get a game setting default."""
+        return self._prefs.get(f"default_{key}")
+
+    def _set_game_setting(self, key: str, value: Optional[str]) -> bool:
+        """Set a game setting default with validation."""
+        if value is None:
+            self._prefs[f"default_{key}"] = None
+            self._save()
+            return True
+        val_lower = value.lower().strip()
+        valid = self.VALID_OPTIONS.get(key, [])
+        if val_lower not in valid:
+            return False
+        self._prefs[f"default_{key}"] = val_lower
+        self._save()
+        return True
+
+    @property
+    def default_preset(self) -> Optional[str]:
+        return self._get_game_setting("preset")
+
+    @default_preset.setter
+    def default_preset(self, value: Optional[str]) -> None:
+        self._set_game_setting("preset", value)
+
+    @property
+    def default_raytracing(self) -> Optional[str]:
+        return self._get_game_setting("raytracing")
+
+    @default_raytracing.setter
+    def default_raytracing(self, value: Optional[str]) -> None:
+        self._set_game_setting("raytracing", value)
+
+    @property
+    def default_upscaling(self) -> Optional[str]:
+        return self._get_game_setting("upscaling")
+
+    @default_upscaling.setter
+    def default_upscaling(self, value: Optional[str]) -> None:
+        self._set_game_setting("upscaling", value)
+
+    @property
+    def default_upscaling_quality(self) -> Optional[str]:
+        return self._get_game_setting("upscaling_quality")
+
+    @default_upscaling_quality.setter
+    def default_upscaling_quality(self, value: Optional[str]) -> None:
+        self._set_game_setting("upscaling_quality", value)
+
+    @property
+    def default_framegen(self) -> Optional[str]:
+        return self._get_game_setting("framegen")
+
+    @default_framegen.setter
+    def default_framegen(self, value: Optional[str]) -> None:
+        self._set_game_setting("framegen", value)
+
+    @property
+    def default_aa(self) -> Optional[str]:
+        return self._get_game_setting("aa")
+
+    @default_aa.setter
+    def default_aa(self, value: Optional[str]) -> None:
+        self._set_game_setting("aa", value)
+
+    @property
+    def default_hdr(self) -> Optional[str]:
+        return self._get_game_setting("hdr")
+
+    @default_hdr.setter
+    def default_hdr(self, value: Optional[str]) -> None:
+        self._set_game_setting("hdr", value)
+
+    @property
+    def default_vsync(self) -> Optional[str]:
+        return self._get_game_setting("vsync")
+
+    @default_vsync.setter
+    def default_vsync(self, value: Optional[str]) -> None:
+        self._set_game_setting("vsync", value)
+
+    @property
+    def default_framelimit(self) -> Optional[str]:
+        return self._get_game_setting("framelimit")
+
+    @default_framelimit.setter
+    def default_framelimit(self, value: Optional[str]) -> None:
+        self._set_game_setting("framelimit", value)
+
+    @property
+    def default_cpu_oc(self) -> Optional[str]:
+        return self._get_game_setting("cpu_oc")
+
+    @default_cpu_oc.setter
+    def default_cpu_oc(self, value: Optional[str]) -> None:
+        self._set_game_setting("cpu_oc", value)
+
+    @property
+    def default_gpu_oc(self) -> Optional[str]:
+        return self._get_game_setting("gpu_oc")
+
+    @default_gpu_oc.setter
+    def default_gpu_oc(self, value: Optional[str]) -> None:
+        self._set_game_setting("gpu_oc", value)
 
     def get_resolution_name(self, key: Optional[str] = None) -> str:
         """Get resolution name for display."""

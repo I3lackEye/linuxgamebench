@@ -438,6 +438,9 @@ def _apply_gpu_selection(system_info: dict, selected_gpu: dict, log_gpu: str = N
     return new_info
 
 
+import sys
+import atexit
+
 app = typer.Typer(
     name="lgb",
     help="Linux Game Benchmark - Automated gaming benchmark tool",
@@ -445,6 +448,42 @@ app = typer.Typer(
     rich_markup_mode="rich",
 )
 console = Console()
+
+# Show game settings panel after --help
+def _show_help_panel_on_exit():
+    """Show game settings panel if --help was used."""
+    if "--help" in sys.argv and len(sys.argv) <= 2:
+        # Only for main help, not subcommand help
+        show_game_settings_help()
+
+atexit.register(_show_help_panel_on_exit)
+
+
+def show_game_settings_help() -> None:
+    """Show game settings help panel."""
+    from rich.panel import Panel
+    from rich.table import Table
+
+    table = Table(show_header=False, box=None, padding=(0, 2))
+    table.add_column("Option", style="cyan")
+    table.add_column("Values", style="green")
+
+    table.add_row("--preset", "None / Low / Medium / High / Ultra / Custom")
+    table.add_row("--raytracing", "None / Low / Medium / High / Ultra / Pathtracing")
+    table.add_row("--upscaling", "None / FSR1 / FSR2 / FSR3 / FSR4 / XeSS / XeSS1 / XeSS2")
+    table.add_row("", "DLSS / DLSS2 / DLSS3 / DLSS3.5 / DLSS4 / DLSS4.5 / TSR")
+    table.add_row("--upscaling-quality", "None / Performance / Balanced / Quality / Ultra-Quality")
+    table.add_row("--framegen", "None / FSR3-FG / DLSS3-FG / DLSS4-FG / DLSS4-MFG")
+    table.add_row("", "XeSS-FG / AFMF / AFMF2 / AFMF3 / Smooth-Motion")
+    table.add_row("--aa", "None / FXAA / SMAA / TAA / DLAA / MSAA")
+    table.add_row("--hdr", "On / Off")
+    table.add_row("--vsync", "On / Off")
+    table.add_row("--framelimit", "None / 30 / 60 / 120 / 144 / 165 / 240 / 360")
+    table.add_row("--cpu-oc", "Yes / No (details: --cpu-oc-info)")
+    table.add_row("--gpu-oc", "Yes / No (details: --gpu-oc-info)")
+
+    console.print(Panel(table, title="[bold]Game Settings (lgb benchmark)[/bold]", border_style="blue"))
+    console.print("[dim]Configure defaults: lgb settings[/dim]\n")
 
 
 def version_callback(value: bool) -> None:
@@ -495,8 +534,9 @@ def require_latest_version() -> None:
         pass
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     version: bool = typer.Option(
         False,
         "--version",
@@ -511,6 +551,13 @@ def main(
 
     Measures FPS, stutter, frame pacing and more for Steam games.
     """
+    # Show help + game settings panel when no subcommand given
+    if ctx.invoked_subcommand is None:
+        # Print normal help first
+        console.print(ctx.get_help())
+        console.print()
+        show_game_settings_help()
+        raise typer.Exit()
     # Check for updates
     try:
         from linux_game_benchmark.api.client import check_for_updates
@@ -685,27 +732,168 @@ def settings() -> None:
     """
     Configure default values for benchmark prompts.
 
-    Set default resolution, upload choice, and continue/end behavior.
+    Set default resolution, upload choice, continue/end behavior, and game settings.
     """
     from linux_game_benchmark.config.preferences import preferences
+    from rich.panel import Panel
+
+    def fmt_val(val: str | None) -> str:
+        """Format value for display."""
+        return f"[bold green]{val}[/bold green]" if val else "[dim](not set)[/dim]"
+
+    def game_settings_submenu() -> None:
+        """Submenu for additional game settings."""
+        while True:
+            console.print("\n[bold]Game Settings (continued)[/bold]\n")
+            console.print(f"  [1] Upscaling Quality: {fmt_val(preferences.default_upscaling_quality)}")
+            console.print(f"  [2] Frame Generation:  {fmt_val(preferences.default_framegen)}")
+            console.print(f"  [3] Anti-Aliasing:     {fmt_val(preferences.default_aa)}")
+            console.print(f"  [4] HDR:               {fmt_val(preferences.default_hdr)}")
+            console.print(f"  [5] VSync:             {fmt_val(preferences.default_vsync)}")
+            console.print(f"  [6] Frame Limit:       {fmt_val(preferences.default_framelimit)}")
+            console.print(f"  [7] CPU Overclock:     {fmt_val(preferences.default_cpu_oc)}")
+            console.print(f"  [8] GPU Overclock:     {fmt_val(preferences.default_gpu_oc)}")
+            console.print(f"  [0] Back")
+
+            try:
+                sub = typer.prompt("\nSelect option", default="0").strip()
+            except:
+                break
+
+            if sub == "0":
+                break
+            elif sub == "1":
+                console.print("\n[bold]Upscaling Quality:[/bold] Performance / Balanced / Quality / Ultra-Quality")
+                try:
+                    val = typer.prompt("Value (or 'clear')", default="").strip()
+                    if val.lower() == "clear":
+                        preferences.default_upscaling_quality = None
+                        console.print("[green]Cleared[/green]")
+                    elif val and preferences._set_game_setting("upscaling_quality", val):
+                        console.print(f"[green]Set to: {val}[/green]")
+                    elif val:
+                        console.print("[red]Invalid value[/red]")
+                except:
+                    pass
+            elif sub == "2":
+                console.print("\n[bold]Frame Generation:[/bold] Off / FSR3-FG / DLSS3-FG / AFMF / AFMF2")
+                try:
+                    val = typer.prompt("Value (or 'clear')", default="").strip()
+                    if val.lower() == "clear":
+                        preferences.default_framegen = None
+                        console.print("[green]Cleared[/green]")
+                    elif val and preferences._set_game_setting("framegen", val):
+                        console.print(f"[green]Set to: {val}[/green]")
+                    elif val:
+                        console.print("[red]Invalid value[/red]")
+                except:
+                    pass
+            elif sub == "3":
+                console.print("\n[bold]Anti-Aliasing:[/bold] None / Off / FXAA / SMAA / TAA / DLAA / MSAA")
+                try:
+                    val = typer.prompt("Value (or 'clear')", default="").strip()
+                    if val.lower() == "clear":
+                        preferences.default_aa = None
+                        console.print("[green]Cleared[/green]")
+                    elif val and preferences._set_game_setting("aa", val):
+                        console.print(f"[green]Set to: {val}[/green]")
+                    elif val:
+                        console.print("[red]Invalid value[/red]")
+                except:
+                    pass
+            elif sub == "4":
+                console.print("\n[bold]HDR:[/bold] On / Off")
+                try:
+                    val = typer.prompt("Value (or 'clear')", default="").strip()
+                    if val.lower() == "clear":
+                        preferences.default_hdr = None
+                        console.print("[green]Cleared[/green]")
+                    elif val and preferences._set_game_setting("hdr", val):
+                        console.print(f"[green]Set to: {val}[/green]")
+                    elif val:
+                        console.print("[red]Invalid value[/red]")
+                except:
+                    pass
+            elif sub == "5":
+                console.print("\n[bold]VSync:[/bold] On / Off")
+                try:
+                    val = typer.prompt("Value (or 'clear')", default="").strip()
+                    if val.lower() == "clear":
+                        preferences.default_vsync = None
+                        console.print("[green]Cleared[/green]")
+                    elif val and preferences._set_game_setting("vsync", val):
+                        console.print(f"[green]Set to: {val}[/green]")
+                    elif val:
+                        console.print("[red]Invalid value[/red]")
+                except:
+                    pass
+            elif sub == "6":
+                console.print("\n[bold]Frame Limit:[/bold] None / 30 / 60 / 120 / 144 / 165 / 180 / 240 / 360")
+                try:
+                    val = typer.prompt("Value (or 'clear')", default="").strip()
+                    if val.lower() == "clear":
+                        preferences.default_framelimit = None
+                        console.print("[green]Cleared[/green]")
+                    elif val and preferences._set_game_setting("framelimit", val):
+                        console.print(f"[green]Set to: {val}[/green]")
+                    elif val:
+                        console.print("[red]Invalid value[/red]")
+                except:
+                    pass
+            elif sub == "7":
+                console.print("\n[bold]CPU Overclock:[/bold] Yes / No")
+                try:
+                    val = typer.prompt("Value (or 'clear')", default="").strip()
+                    if val.lower() == "clear":
+                        preferences.default_cpu_oc = None
+                        console.print("[green]Cleared[/green]")
+                    elif val and preferences._set_game_setting("cpu_oc", val):
+                        console.print(f"[green]Set to: {val}[/green]")
+                    elif val:
+                        console.print("[red]Invalid value[/red]")
+                except:
+                    pass
+            elif sub == "8":
+                console.print("\n[bold]GPU Overclock:[/bold] Yes / No")
+                try:
+                    val = typer.prompt("Value (or 'clear')", default="").strip()
+                    if val.lower() == "clear":
+                        preferences.default_gpu_oc = None
+                        console.print("[green]Cleared[/green]")
+                    elif val and preferences._set_game_setting("gpu_oc", val):
+                        console.print(f"[green]Set to: {val}[/green]")
+                    elif val:
+                        console.print("[red]Invalid value[/red]")
+                except:
+                    pass
 
     while True:
-        console.print("\n[bold]Current Settings[/bold]\n")
-
-        # Show current settings with defaults highlighted
-        res = preferences.resolution
+        # Show current settings
         res_name = preferences.get_resolution_name()
         upload = preferences.upload.upper()
         cont = preferences.continue_session.upper()
 
-        console.print(f"  [1] Default Resolution: [bold green]{res_name}[/bold green]")
-        console.print(f"  [2] Default Upload:     [bold green]{upload}[/bold green]")
-        console.print(f"  [3] Default Continue:   [bold green]{cont}[/bold green]")
-        console.print(f"  [4] Reset to defaults")
+        console.print("\n")
+        console.print(Panel(
+            f"  [1] Resolution: [bold green]{res_name}[/bold green]\n"
+            f"  [2] Upload:     [bold green]{upload}[/bold green]\n"
+            f"  [3] Continue:   [bold green]{cont}[/bold green]",
+            title="[bold]Benchmark Defaults[/bold]",
+            border_style="blue"
+        ))
+        console.print(Panel(
+            f"  [4] Preset:      {fmt_val(preferences.default_preset)}\n"
+            f"  [5] Ray Tracing: {fmt_val(preferences.default_raytracing)}\n"
+            f"  [6] Upscaling:   {fmt_val(preferences.default_upscaling)}\n"
+            f"  [7] More...      [dim](AA, HDR, VSync, Framegen, OC)[/dim]",
+            title="[bold]Game Settings Defaults[/bold]",
+            border_style="cyan"
+        ))
+        console.print(f"  [R] Reset all")
         console.print(f"  [0] Back")
 
         try:
-            choice = typer.prompt("\nSelect option", default="0").strip()
+            choice = typer.prompt("\nSelect option", default="0").strip().lower()
         except:
             break
 
@@ -719,7 +907,7 @@ def settings() -> None:
             console.print("  [4] UWQHD (3440x1440)")
             console.print("  [5] UHD   (3840x2160)")
             try:
-                new_res = typer.prompt("Resolution [1-5]", default=res).strip()
+                new_res = typer.prompt("Resolution [1-5]", default=preferences.resolution).strip()
                 if new_res in ("1", "2", "3", "4", "5"):
                     preferences.resolution = new_res
                     console.print(f"[green]Set to: {preferences.get_resolution_name()}[/green]")
@@ -748,8 +936,49 @@ def settings() -> None:
             except:
                 pass
         elif choice == "4":
+            console.print("\n[bold]Preset:[/bold] Low / Medium / High / Ultra / Custom")
+            try:
+                val = typer.prompt("Value (or 'clear')", default="").strip()
+                if val.lower() == "clear":
+                    preferences.default_preset = None
+                    console.print("[green]Cleared[/green]")
+                elif val and preferences._set_game_setting("preset", val):
+                    console.print(f"[green]Set to: {val}[/green]")
+                elif val:
+                    console.print("[red]Invalid value[/red]")
+            except:
+                pass
+        elif choice == "5":
+            console.print("\n[bold]Ray Tracing:[/bold] Off / Low / Medium / High / Ultra / Pathtracing")
+            try:
+                val = typer.prompt("Value (or 'clear')", default="").strip()
+                if val.lower() == "clear":
+                    preferences.default_raytracing = None
+                    console.print("[green]Cleared[/green]")
+                elif val and preferences._set_game_setting("raytracing", val):
+                    console.print(f"[green]Set to: {val}[/green]")
+                elif val:
+                    console.print("[red]Invalid value[/red]")
+            except:
+                pass
+        elif choice == "6":
+            console.print("\n[bold]Upscaling:[/bold] None / FSR1-4 / DLSS2-4.5 / XeSS / TSR")
+            try:
+                val = typer.prompt("Value (or 'clear')", default="").strip()
+                if val.lower() == "clear":
+                    preferences.default_upscaling = None
+                    console.print("[green]Cleared[/green]")
+                elif val and preferences._set_game_setting("upscaling", val):
+                    console.print(f"[green]Set to: {val}[/green]")
+                elif val:
+                    console.print("[red]Invalid value[/red]")
+            except:
+                pass
+        elif choice == "7":
+            game_settings_submenu()
+        elif choice == "r":
             preferences.reset()
-            console.print("[green]Reset to defaults[/green]")
+            console.print("[green]Reset all settings to defaults[/green]")
 
 
 @app.command()
@@ -1026,46 +1255,56 @@ def benchmark(
         None, "--resolution", "-r",
         help="Resolution (HD/FHD/WQHD/UWQHD/UHD or 1920x1080 format). Skip interactive prompt.",
     ),
-    # Game Settings (all optional)
+    # Game Settings (all optional, with validation)
     preset: Optional[str] = typer.Option(
         None, "--preset",
-        help="Graphics preset (low/medium/high/ultra/custom)",
+        help="Graphics preset (Low/Medium/High/Ultra/Custom)",
+        case_sensitive=False,
     ),
     raytracing: Optional[str] = typer.Option(
         None, "--raytracing",
-        help="Ray tracing (off/low/medium/high/ultra/pathtracing)",
+        help="Ray tracing (Off/Low/Medium/High/Ultra/Pathtracing)",
+        case_sensitive=False,
     ),
     upscaling: Optional[str] = typer.Option(
         None, "--upscaling",
-        help="Upscaling (none/fsr1/fsr2/fsr3/fsr4/dlss2/dlss3/dlss3.5/dlss4/dlss4.5/xess1/xess2)",
+        help="Upscaling (None/FSR1-4/DLSS2-4.5/XeSS/TSR)",
+        case_sensitive=False,
     ),
     upscaling_quality: Optional[str] = typer.Option(
         None, "--upscaling-quality",
-        help="Upscaling quality (performance/balanced/quality/ultra-quality)",
+        help="Upscaling quality (Performance/Balanced/Quality/Ultra-Quality)",
+        case_sensitive=False,
     ),
     framegen: Optional[str] = typer.Option(
         None, "--framegen",
-        help="Frame generation (off/fsr3-fg/dlss3-fg/afmf/afmf2)",
+        help="Frame generation (Off/FSR3-FG/DLSS3-4-FG/XeSS-FG/AFMF1-3/Smooth-Motion)",
+        case_sensitive=False,
     ),
     aa: Optional[str] = typer.Option(
         None, "--aa",
-        help="Anti-aliasing (none/fxaa/smaa/taa/dlaa)",
+        help="Anti-aliasing (None/Off/FXAA/SMAA/TAA/DLAA/MSAA)",
+        case_sensitive=False,
     ),
     hdr: Optional[str] = typer.Option(
         None, "--hdr",
-        help="HDR (on/off)",
+        help="HDR (On/Off)",
+        case_sensitive=False,
     ),
     vsync: Optional[str] = typer.Option(
         None, "--vsync",
-        help="VSync (on/off)",
+        help="VSync (On/Off)",
+        case_sensitive=False,
     ),
     framelimit: Optional[str] = typer.Option(
         None, "--framelimit",
-        help="Frame limit (none/30/60/120/144/165/180/240)",
+        help="Frame limit (None/30/60/120/144/165/180/240/360)",
+        case_sensitive=False,
     ),
     cpu_oc: Optional[str] = typer.Option(
         None, "--cpu-oc",
-        help="CPU overclock (yes/no)",
+        help="CPU overclock (Yes/No)",
+        case_sensitive=False,
     ),
     cpu_oc_info: Optional[str] = typer.Option(
         None, "--cpu-oc-info",
@@ -1073,7 +1312,8 @@ def benchmark(
     ),
     gpu_oc: Optional[str] = typer.Option(
         None, "--gpu-oc",
-        help="GPU overclock (yes/no)",
+        help="GPU overclock (Yes/No)",
+        case_sensitive=False,
     ),
     gpu_oc_info: Optional[str] = typer.Option(
         None, "--gpu-oc-info",
@@ -1086,32 +1326,87 @@ def benchmark(
     Starts the game and allows multiple benchmark recordings with Shift+F2.
     After each recording, you can choose to continue or end the session.
     """
+    # Load defaults from preferences if not provided via CLI
+    from linux_game_benchmark.config.preferences import preferences as user_prefs
+    if preset is None:
+        preset = user_prefs.default_preset
+    if raytracing is None:
+        raytracing = user_prefs.default_raytracing
+    if upscaling is None:
+        upscaling = user_prefs.default_upscaling
+    if upscaling_quality is None:
+        upscaling_quality = user_prefs.default_upscaling_quality
+    if framegen is None:
+        framegen = user_prefs.default_framegen
+    if aa is None:
+        aa = user_prefs.default_aa
+    if hdr is None:
+        hdr = user_prefs.default_hdr
+    if vsync is None:
+        vsync = user_prefs.default_vsync
+    if framelimit is None:
+        framelimit = user_prefs.default_framelimit
+    if cpu_oc is None:
+        cpu_oc = user_prefs.default_cpu_oc
+    if gpu_oc is None:
+        gpu_oc = user_prefs.default_gpu_oc
+
+    # Valid options for game settings
+    VALID_OPTIONS = {
+        'preset': ['none', 'low', 'medium', 'high', 'ultra', 'custom'],
+        'raytracing': ['none', 'low', 'medium', 'high', 'ultra', 'pathtracing'],
+        'upscaling': ['none', 'fsr1', 'fsr2', 'fsr3', 'fsr4', 'dlss', 'dlss2', 'dlss3', 'dlss3.5', 'dlss4', 'dlss4.5', 'xess', 'xess1', 'xess2', 'tsr'],
+        'upscaling_quality': ['none', 'performance', 'balanced', 'quality', 'ultra-quality', 'ultra quality'],
+        'framegen': ['none', 'fsr3-fg', 'dlss3-fg', 'dlss4-fg', 'dlss4-mfg', 'xess-fg', 'afmf', 'afmf2', 'afmf3', 'smooth-motion'],
+        'aa': ['none', 'fxaa', 'smaa', 'taa', 'dlaa', 'msaa'],
+        'hdr': ['on', 'off'],
+        'vsync': ['on', 'off'],
+        'framelimit': ['none', '30', '60', '120', '144', '165', '180', '240', '360'],
+        'cpu_oc': ['yes', 'no'],
+        'gpu_oc': ['yes', 'no'],
+    }
+
+    def validate_option(name: str, value: Optional[str]) -> Optional[str]:
+        """Validate and normalize option value."""
+        if value is None:
+            return None
+        val_lower = value.lower().strip()
+        valid = VALID_OPTIONS.get(name, [])
+        if val_lower not in valid:
+            console.print(f"[red]Error:[/red] Invalid value '{value}' for --{name.replace('_', '-')}")
+            console.print(f"[yellow]Valid options:[/yellow] {', '.join(valid)}")
+            raise typer.Exit(1)
+        return val_lower
+
+    # Validate all options (including defaults loaded from preferences)
+    preset = validate_option('preset', preset)
+    raytracing = validate_option('raytracing', raytracing)
+    upscaling = validate_option('upscaling', upscaling)
+    upscaling_quality = validate_option('upscaling_quality', upscaling_quality)
+    framegen = validate_option('framegen', framegen)
+    aa = validate_option('aa', aa)
+    hdr = validate_option('hdr', hdr)
+    vsync = validate_option('vsync', vsync)
+    framelimit = validate_option('framelimit', framelimit)
+    cpu_oc = validate_option('cpu_oc', cpu_oc)
+    gpu_oc = validate_option('gpu_oc', gpu_oc)
+
     # Build game_settings dict from CLI parameters (once, at start)
+    # Apply defaults: "none" for technology selections, "off"/"no" for toggles
     game_settings: Dict[str, str] = {}
-    if preset:
-        game_settings['game_preset'] = preset
-    if raytracing:
-        game_settings['ray_tracing'] = raytracing
-    if upscaling:
-        game_settings['upscaling'] = upscaling
-    if upscaling_quality:
-        game_settings['upscaling_quality'] = upscaling_quality
-    if framegen:
-        game_settings['frame_generation'] = framegen
-    if aa:
-        game_settings['anti_aliasing'] = aa
-    if hdr:
-        game_settings['hdr'] = hdr
-    if vsync:
-        game_settings['vsync'] = vsync
-    if framelimit:
-        game_settings['frame_limit'] = framelimit
-    if cpu_oc:
-        game_settings['cpu_overclock'] = cpu_oc
+    game_settings['game_preset'] = preset if preset else "none"
+    game_settings['ray_tracing'] = raytracing if raytracing else "none"
+    game_settings['upscaling'] = upscaling if upscaling else "none"
+    game_settings['upscaling_quality'] = upscaling_quality if upscaling_quality else "none"
+    game_settings['frame_generation'] = framegen if framegen else "none"
+    game_settings['anti_aliasing'] = aa if aa else "none"
+    game_settings['hdr'] = hdr if hdr else "off"
+    game_settings['vsync'] = vsync if vsync else "off"
+    game_settings['frame_limit'] = framelimit if framelimit else "none"
+    game_settings['cpu_overclock'] = cpu_oc if cpu_oc else "no"
     if cpu_oc_info:
         game_settings['cpu_overclock_info'] = cpu_oc_info
-    if gpu_oc:
-        game_settings['gpu_overclock'] = gpu_oc
+    game_settings['gpu_overclock'] = gpu_oc if gpu_oc else "no"
     if gpu_oc_info:
         game_settings['gpu_overclock_info'] = gpu_oc_info
 

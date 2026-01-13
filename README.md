@@ -147,6 +147,67 @@ lgb benchmark "Factorio" --duration 60
 4. Select resolution and optionally upload to community database
 5. Repeat for more recordings or exit
 
+---
+
+## ⚡ Game Settings - Better Comparisons!
+
+**The more settings you specify, the better you can compare your results with others!**
+
+When running a benchmark, you can specify your in-game graphics settings. This allows the community to compare apples-to-apples: same game, same resolution, same settings.
+
+### Quick Examples
+
+```bash
+# Basic benchmark with preset
+lgb benchmark "Cyberpunk 2077" --preset ultra --raytracing high
+
+# Full settings for best comparison
+lgb benchmark "Cyberpunk 2077" \
+  --preset ultra \
+  --raytracing pathtracing \
+  --upscaling dlss3.5 \
+  --upscaling-quality quality \
+  --framegen dlss3-fg \
+  --hdr on
+
+# AMD setup
+lgb benchmark "Baldurs Gate 3" \
+  --preset ultra \
+  --upscaling fsr3 \
+  --upscaling-quality balanced \
+  --framegen afmf2
+```
+
+### All Available Settings
+
+| Option | Values |
+|--------|--------|
+| `--preset` | Low / Medium / High / Ultra / Custom |
+| `--raytracing` | Off / Low / Medium / High / Ultra / Pathtracing |
+| `--upscaling` | None / FSR1 / FSR2 / FSR3 / FSR4 / DLSS / DLSS2 / DLSS3 / DLSS3.5 / DLSS4 / DLSS4.5 / XeSS / XeSS1 / XeSS2 / TSR |
+| `--upscaling-quality` | Performance / Balanced / Quality / Ultra-Quality |
+| `--framegen` | Off / FSR3-FG / DLSS3-FG / DLSS4-FG / DLSS4-MFG / XeSS-FG / AFMF / AFMF2 / AFMF3 / Smooth-Motion |
+| `--aa` | None / FXAA / SMAA / TAA / DLAA / MSAA |
+| `--hdr` | On / Off |
+| `--vsync` | On / Off |
+| `--framelimit` | None / 30 / 60 / 120 / 144 / 165 / 240 / 360 |
+| `--cpu-oc` | Yes / No (+ `--cpu-oc-info "5.0GHz"`) |
+| `--gpu-oc` | Yes / No (+ `--gpu-oc-info "+150MHz"`) |
+
+### Configure Defaults
+
+Don't want to type settings every time? Set your defaults:
+
+```bash
+lgb settings
+```
+
+This opens an interactive menu where you can set your default preset, raytracing, upscaling, etc. These defaults are used automatically when you don't specify them on the command line.
+
+**Tip:** Run `lgb` or `lgb --help` to see all available settings at a glance!
+
+---
+
 ### 4. View Report
 
 ```bash
