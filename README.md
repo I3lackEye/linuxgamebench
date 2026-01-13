@@ -153,6 +153,8 @@ lgb benchmark "Factorio" --duration 60
 xdg-open ~/benchmark_results/index.html
 ```
 
+![Local HTML Report](docs/screenshot_local_report.png)
+
 ## Commands
 
 | Command | Description |
