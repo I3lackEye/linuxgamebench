@@ -1484,9 +1484,9 @@ def benchmark(
         # Get GPU name from glxinfo (cleaner than lspci which shows all variants)
         gpu_model = system_info.get("gpu", {}).get("model", "")
         if gpu_model and gpu_model != "Unknown":
-            console.print(f"[dim]Detected discrete GPU: {gpu_model}[/dim]")
+            console.print(f"[dim]Multi-GPU: Using {gpu_model} (pci_dev={gpu_pci})[/dim]")
         else:
-            console.print(f"[dim]Detected discrete GPU: {gpu_pci}[/dim]")
+            console.print(f"[dim]Multi-GPU: Using discrete GPU (pci_dev={gpu_pci})[/dim]")
 
     # Configure MangoHud for manual logging with auto-stop
     mangohud_manager.backup_config()
@@ -1498,11 +1498,16 @@ def benchmark(
         gpu_pci_dev=gpu_pci,
     )
 
-    # Set Steam launch options - use MANGOHUD_CONFIGFILE to ensure all settings are used
-    # This is more reliable than MANGOHUD_CONFIG for Proton/Wine games
+    # Set Steam launch options - use both MANGOHUD_CONFIGFILE and MANGOHUD_CONFIG
+    # Belt-and-suspenders approach for multi-GPU systems
     try:
         config_path = mangohud_manager.config_file
-        launch_opts = f'MANGOHUD=1 MANGOHUD_CONFIGFILE={config_path} %command%'
+        if gpu_pci:
+            # Escape colons for MANGOHUD_CONFIG (uses : as delimiter)
+            pci_escaped = gpu_pci.replace(":", r"\:")
+            launch_opts = f'MANGOHUD=1 MANGOHUD_CONFIGFILE={config_path} MANGOHUD_CONFIG="pci_dev={pci_escaped}" %command%'
+        else:
+            launch_opts = f'MANGOHUD=1 MANGOHUD_CONFIGFILE={config_path} %command%'
         set_launch_options(steam_app_id, launch_opts)
     except Exception as e:
         console.print(f"[yellow]Warning: Could not set launch options: {e}[/yellow]")
