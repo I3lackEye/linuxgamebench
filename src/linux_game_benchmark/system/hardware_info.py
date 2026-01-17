@@ -305,10 +305,17 @@ def get_gpu_info() -> dict:
         # For AMD: glxinfo gives full info but includes driver details in parentheses
         # e.g. "AMD Radeon RX 7900 XTX (radeonsi, navi31, LLVM 21.1.6, DRM 3.64, 6.18.2-3-cachyos)"
         # We want just "AMD Radeon RX 7900 XTX"
-        if glxinfo_model:
-            info["model"] = glxinfo_model.split("(")[0].strip()
+        # But sometimes glxinfo only gives "AMD Radeon Graphics" (generic), so prefer vulkaninfo
+        glx_clean = glxinfo_model.split("(")[0].strip() if glxinfo_model else None
+        # Prefer specific names over generic "AMD Radeon Graphics"
+        if glx_clean and glx_clean != "AMD Radeon Graphics":
+            info["model"] = glx_clean
+        elif vulkan_model and "AMD" in vulkan_model:
+            info["model"] = vulkan_model
         elif lspci_model:
             info["model"] = lspci_model
+        elif glx_clean:
+            info["model"] = glx_clean
     elif info["vendor"] == "NVIDIA":
         # For NVIDIA: lspci is usually clean
         if lspci_model:
