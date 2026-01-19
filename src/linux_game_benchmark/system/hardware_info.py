@@ -360,7 +360,7 @@ def get_gpu_info() -> dict:
     except Exception:
         pass
 
-    # Get Vulkan device name (PRIMARY SOURCE for GPU model)
+    # Get Vulkan device name and driver info (PRIMARY SOURCE for GPU model and driver)
     try:
         result = subprocess.run(
             ["vulkaninfo", "--summary"],
@@ -383,35 +383,77 @@ def get_gpu_info() -> dict:
                     if "Ryzen" not in clean_name and "Core" not in clean_name and "Processor" not in clean_name:
                         vulkan_model = clean_name.strip()
                         break  # Use first discrete GPU
-            if "apiVersion" in line:
+            elif "apiVersion" in line:
                 match = re.search(r"= (\d+\.\d+\.\d+)", line)
                 if match:
                     info["vulkan_version"] = match.group(1)
+            elif "driverName" in line:
+                match = re.search(r"=\s*(.+)", line)
+                if match:
+                    driver_name = match.group(1).strip()
+                    # Map Vulkan driver names to user-friendly names
+                    if driver_name == "NVIDIA":
+                        info["driver"] = "NVIDIA"
+                    elif driver_name.lower() in ["radv", "amdvlk"]:
+                        info["driver"] = driver_name.upper()
+                    elif driver_name.lower() == "intel":
+                        info["driver"] = "ANV"  # Intel's Vulkan driver
+                    else:
+                        info["driver"] = driver_name
+            elif "driverInfo" in line:
+                match = re.search(r"=\s*(.+)", line)
+                if match:
+                    driver_info = match.group(1).strip()
+                    # Extract version from driver info
+                    # Examples: "590.48.01", "Mesa 24.3.1 (git-abc123)"
+                    version_match = re.search(r"(\d+\.\d+(?:\.\d+)?)", driver_info)
+                    if version_match:
+                        info["driver_version"] = version_match.group(1)
     except Exception:
         pass
 
-    # Get driver info from glxinfo
-    try:
-        result = subprocess.run(
-            ["glxinfo", "-B"],
-            capture_output=True,
-            text=True,
-        )
-        for line in result.stdout.split("\n"):
-            if "OpenGL version" in line:
-                version = line.split(":")[-1].strip()
-                if "Mesa" in version:
-                    info["driver"] = "Mesa"
-                    match = re.search(r"Mesa (\d+\.\d+\.\d+)", version)
-                    if match:
-                        info["driver_version"] = match.group(1)
-                elif "NVIDIA" in version:
+    # Fallback: Try nvidia-smi for NVIDIA GPUs if driver info not found
+    if info["vendor"] == "NVIDIA" and (info["driver"] == "Unknown" or not info["driver_version"]):
+        try:
+            result = subprocess.run(
+                ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                driver_ver = result.stdout.strip()
+                if driver_ver:
                     info["driver"] = "NVIDIA"
-                    match = re.search(r"NVIDIA (\d+\.\d+\.\d+)", version)
-                    if match:
-                        info["driver_version"] = match.group(1)
-    except Exception:
-        pass
+                    info["driver_version"] = driver_ver
+        except Exception:
+            pass
+
+    # Fallback: Try glxinfo if still no driver info (X11 only)
+    if info["driver"] == "Unknown":
+        try:
+            result = subprocess.run(
+                ["glxinfo", "-B"],
+                capture_output=True,
+                text=True,
+                env={**os.environ, "DISPLAY": os.environ.get("DISPLAY", ":0")},
+            )
+            if result.returncode == 0:
+                for line in result.stdout.split("\n"):
+                    if "OpenGL version" in line:
+                        version = line.split(":")[-1].strip()
+                        if "Mesa" in version:
+                            info["driver"] = "Mesa"
+                            match = re.search(r"Mesa (\d+\.\d+\.\d+)", version)
+                            if match:
+                                info["driver_version"] = match.group(1)
+                        elif "NVIDIA" in version:
+                            info["driver"] = "NVIDIA"
+                            match = re.search(r"NVIDIA (\d+\.\d+\.\d+)", version)
+                            if match:
+                                info["driver_version"] = match.group(1)
+                        break
+        except Exception:
+            pass
 
     # === Step 2: Determine GPU model with priority ===
 
