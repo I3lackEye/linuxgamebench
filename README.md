@@ -342,6 +342,20 @@ If this shows your GPU, you're good to go!
 2. Run `lgb check` to verify all requirements
 3. If still not working, run `lgb gpu` to see what's detected
 
+### What does --framelimit do?
+
+The `--framelimit` option (e.g., `--framelimit 144`) is a **metadata tag** - it does NOT automatically limit your FPS!
+
+**You must set the frame limit yourself** in:
+- The game's graphics settings, OR
+- Your GPU driver (NVIDIA Control Panel / AMD Adrenalin), OR
+- MangoHud config (`fps_limit=144`)
+
+**Use cases:**
+- Document that you're testing with a specific FPS cap
+- Compare benchmarks at same frame limit (e.g., 60 FPS lock vs unlimited)
+- Test with VSync enabled (`--vsync on --framelimit 144`) to see if your GPU can maintain the target
+
 ## License
 
 GPL-3.0 License
